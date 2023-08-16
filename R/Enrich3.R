@@ -37,18 +37,19 @@ Enrich3Harmony <- function(dataset, links, annot, ...) {
                           str_replace(trait, "_C([0-9]+)$", "_M\\1"),
                           trait)) %>%
     select(-enrich) %>%
+    # Combine `minute` into `trait`.
     select(strain, sex, animal, condition, trait, minute, value)
   
   # Area under curve and other time summaries
   auc <- area_under_curve(out, "minute") %>%
     select(strain, sex, animal, condition, trait, value)
-  
-  out <- out %>%
-    mutate(trait = paste(trait, minute, "18wk", sep = "_")) %>%
-    select(-minute)
-  
-  # These are harmonized columns and their names.
-  bind_rows(out, auc)
+    
+  # Append "_18wk" to trait names and drop `minute` column.
+  bind_rows(
+    out %>%
+      unite(trait, trait, minute),
+    auc) %>%
+    mutate(trait = paste(trait, "18wk", sep = "_"))
 }
 
 read_trait_sheet <- function(filename, sheet) {

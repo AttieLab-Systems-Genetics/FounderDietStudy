@@ -2,11 +2,12 @@ This study has two diets (`HC_LF` = high carb, low fat; `HF_LC` = high fat, low 
   
 ```{r echo=FALSE}
 dataset <- read.csv(file.path("data/RawData", "source.csv"))
-dataset <- dataset[dataset$longname != "",]
-dataset[2] <- "--"
+dataset <- dataset[dataset$longname != "", c(1,3)]
 rownames(dataset) <- NULL
-colnames(dataset) <- c("Name","","Description")
-knitr::kable(dataset, "simple")
+colnames(dataset) <- c("Name","Description")
+#kableExtra::kable_paper(
+knitr::kable(dataset)
+#, "hover", full_width = FALSE, position = "left")
 ```
 
 <hr>

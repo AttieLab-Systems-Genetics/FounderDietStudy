@@ -25,7 +25,7 @@ customSettings <- list(
 
 ################################################################
 
-title <- "Test Shiny Trait Panel"
+title <- "Founder Diet Study"
 
 ui <- foundr::ui(title)
 

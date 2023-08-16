@@ -25,7 +25,7 @@ library(foundr) # github/byandell/foundr
 ```
 
 ```{r}
-harmonizeddir <- "."
+#harmonizeddir <- "."
 rawdir <- "../RawData"
 getwd()
 ```
@@ -157,6 +157,7 @@ harmonize("Enrich", links, EnrichHarmony, annot,
 ```
   
 ```{r}
+dir()
 harmonize("PlaEnrich", links, Enrich3Harmony, annot,
           condition_name = condition_name, normalize = normalize)
 ```
@@ -183,5 +184,6 @@ harmonize("Module", links, foundr::moduleHarmony,
 ```
 
 ```{r}
-bind_traits(c("Physio","PlaMet0","PlaMet120","LivMet","LivRna","Lipid","Module","Enrich","PlaEnrich"))
+dir()
+bind_traits(c("Physio","PlaMet0","PlaMet120","LivMet","Lipid","Module","Enrich","PlaEnrich"))
 ```
