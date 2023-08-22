@@ -98,16 +98,12 @@ harmonize("LivMet", links, MetHarmony, annot, skiprows = 3,
 
 ## LivRna: Liver mRNA expression
 
-There is a separate liver annotation file, which relates `ENTREZID` to `SYMBOL`.
-
-```{r}
-liverAnnot <- linkpath("liver_annot", links)
-liverAnnot <- read_csv(liverAnnot)
-```
+These data have been run through variance stabilizing transform and
+do not need further normalization.
 
 ```{r warning = FALSE}
-harmonize("LivRna", links, LivRnaHarmony, annot, liverAnnot,
-          condition_name = condition_name, normalize = normalize)
+harmonize("LivRna", links, LivRnaHarmony, annot,
+          condition_name = condition_name, normalize = FALSE)
 ```
 
 ## Lipid: Liver Lipids
@@ -183,7 +179,17 @@ harmonize("Module", links, foundr::moduleHarmony,
           condition_name = condition_name, normalize = normalize)
 ```
 
+# Bind traits into RDS objects for shiny tools
+
+Standard `FounderDietStudy`:
+
 ```{r}
-dir()
 bind_traits(c("Physio","PlaMet0","PlaMet120","LivMet","Lipid","Module","Enrich","PlaEnrich"))
+```
+
+
+Special `FounderLiverDietStudy`:
+
+```{r}
+bind_traits(c("Physio","LivMet","Lipid","LivRna"), traitRoot = "liver")
 ```

@@ -5,17 +5,13 @@ devtools::install_cran("ggdendro") #  not yet on UW dataviz
 #devtools::install_cran("RSQLite") #  not yet on UW dataviz
 devtools::install_github("byandell/foundr")
 
-dirpath <- file.path("big")
+dirpath <- file.path(".")
 traitData <- readRDS(file.path(dirpath, "traitData.rds"))
 traitSignal <- readRDS(file.path(dirpath, "traitSignal.rds"))
 traitStats <- readRDS(file.path(dirpath, "traitStats.rds"))
 
-#db <- RSQLite::dbConnect(RSQLite::SQLite(),
-#                         file.path(dirpath, "traitData.sqlite"))
-#traitData <- dplyr::tbl(db, "traitData")
-
-#source("appSetup.R")
-datasets <- readRDS("big/datasets.rds")
+#source("../appSetup.R")
+datasets <- readRDS("datasets.rds")
 
 customSettings <- list(
   help = "help.md",

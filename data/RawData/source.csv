@@ -4,7 +4,7 @@ annot,Annotation/mouse annotations for founder diet study.xlsx,
 Physio,Physio/Final raw and computed in vivo founder data for Mark for correlations.xlsx,In Vivo Physiological traits
 PlaMet0,PlaMet/15Aug2022_Founder_T0_metabolomics_combined_unique_isobars_removed.xlsx,Plasma metabolites 0min
 PlaMet120,PlaMet/30Mar23_Founder_Plasma_tp120min_metabolomics_combined_unique_isobars_removed.xlsx,Plasma metabolites 120min
-LivRna,LivRna/normalizedcount.csv,Liver gene expression
+LivRna,LivRna/VSD_transformed_founder_data_Charles/vsd_transfromed_founder_data 2.csv,Liver gene expression
 liver_annot,LivRna/varianceStabilizingTransformation/annotation2.csv,
 LivMet,LivMet/01Feb23_Founder_Livers_metabolomics_combined_unique_isobars_removed.xlsx,Liver metabolites
 Enrich,Enrich/Founder_plasma_timepoints_data_summary_Qiushi_shared.xlsx,Plasma enrichment over time
