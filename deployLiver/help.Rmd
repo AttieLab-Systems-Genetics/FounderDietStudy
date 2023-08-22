@@ -1,4 +1,4 @@
-This study has two diets (`HC_LF` = high carb, low fat; `HF_LC` = high fat, low carb) with three measurement sets collected on 192 mice:
+This liver study has two diets (`HC_LF` = high carb, low fat; `HF_LC` = high fat, low carb) with three measurement sets collected on 192 mice:
   
 ```{r echo=FALSE}
 datasets <- readRDS("datasets.rds")

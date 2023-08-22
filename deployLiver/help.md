@@ -1,5 +1,5 @@
-This study has two diets (`HC_LF` = high carb, low fat; `HF_LC` = high
-fat, low carb) with three measurement sets collected on 192 mice:
+This liver study has two diets (`HC_LF` = high carb, low fat; `HF_LC` =
+high fat, low carb) with three measurement sets collected on 192 mice:
 
 <table>
 <thead>
@@ -14,28 +14,16 @@ fat, low carb) with three measurement sets collected on 192 mice:
 <td style="text-align: left;">In Vivo Physiological traits</td>
 </tr>
 <tr class="even">
-<td style="text-align: left;">PlaMet0</td>
-<td style="text-align: left;">Plasma metabolites 0min</td>
+<td style="text-align: left;">LivRna</td>
+<td style="text-align: left;">Liver gene expression</td>
 </tr>
 <tr class="odd">
-<td style="text-align: left;">PlaMet120</td>
-<td style="text-align: left;">Plasma metabolites 120min</td>
-</tr>
-<tr class="even">
 <td style="text-align: left;">LivMet</td>
 <td style="text-align: left;">Liver metabolites</td>
-</tr>
-<tr class="odd">
-<td style="text-align: left;">Enrich</td>
-<td style="text-align: left;">Plasma enrichment over time</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">Lipid</td>
 <td style="text-align: left;">Liver Lipids</td>
-</tr>
-<tr class="odd">
-<td style="text-align: left;">PlaEnrich</td>
-<td style="text-align: left;">Plasma Time Points</td>
 </tr>
 </tbody>
 </table>

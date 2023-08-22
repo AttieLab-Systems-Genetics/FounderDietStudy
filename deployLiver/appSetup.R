@@ -1,5 +1,6 @@
 
 # Pull dataset names from `source.csv`
+getwd()
 dataset <- read.csv(file.path("data/RawData", "source.csv"))
 dataset <- dataset[dataset$longname != "", c(1,3)]
 rownames(dataset) <- NULL
@@ -7,9 +8,9 @@ datasets <- dataset$longname
 names(datasets) <- dataset$shortname
 
 # Make sure datasets are being used here.
-traitSignal <- unique(readRDS(file.path("big", "traitSignal.rds"))$dataset)
-datasets <- datasets[names(datasets) %in% traitSignal]
+liverSignal <- unique(readRDS("deployLiver/liverSignal.rds")$dataset)
+datasets <- datasets[names(datasets) %in% liverSignal]
 
-saveRDS(datasets, "big/datasets.rds")
+saveRDS(datasets, "deployLiver/datasets.rds")
 
-rmarkdown::render("help.Rmd", rmarkdown::md_document(),  output_file = "help.md")
+rmarkdown::render("deployLiver/help.Rmd", rmarkdown::md_document())
