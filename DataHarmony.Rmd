@@ -89,6 +89,13 @@ harmonize("PlaMet120", links, MetHarmony, annot, skiprows = 3,
           condition_name = condition_name, normalize = normalize)
 ```
 
+## PlaMetAll: Plasma metabolites at 120 minutes
+
+```{r warning = FALSE}
+harmonize("PlaMetAll", links, MetHarmony, annot, skiprows = 4,
+          condition_name = condition_name, normalize = normalize)
+```
+
 ## LivMet: Liver metabolites
 
 ```{r warning = FALSE}
@@ -165,6 +172,11 @@ PlaEnrichData <- PlaEnrichData %>% mutate(animal = as.character(animal))
 saveRDS(PlaEnrichData, "PlaEnrich/PlaEnrichData.rds")
 ```
 
+```{r}
+harmonize("LivEnrich", links, LivEnrichHarmony, annot,
+          condition_name = condition_name, normalize = normalize)
+```
+
 ## Module: WGCNA module eigentraits
 
 See <WGCNA.Rmd> for construction of `traitModule`.
@@ -184,7 +196,7 @@ harmonize("Module", links, foundr::moduleHarmony,
 Standard `FounderDietStudy`:
 
 ```{r}
-bind_traits(c("Physio","PlaMet0","PlaMet120","LivMet","Lipid","Module","Enrich","PlaEnrich"))
+bind_traits(c("Physio","PlaMet0","PlaMet120","PlaMetAll","LivMet","Lipid","Module","Enrich","PlaEnrich","LivEnrich"))
 ```
 
 

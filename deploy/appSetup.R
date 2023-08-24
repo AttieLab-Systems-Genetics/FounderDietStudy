@@ -13,3 +13,4 @@ datasets <- datasets[names(datasets) %in% traitSignal]
 saveRDS(datasets, "deploy/datasets.rds")
 
 rmarkdown::render("deploy/help.Rmd", rmarkdown::md_document())
+
