@@ -5,7 +5,7 @@ date: "`r format(Sys.time(), '%d %B %Y')`"
 output: html_document
 params:
   echo: no
-  rootdir: /mnt/researchdrive/adattie/General/founder_diet_study
+  rootdir: ~/founder_diet_study
 ---
 
 ```{r}
@@ -38,6 +38,73 @@ BiocManager::install("preprocessCore")
 ```
 
 ** Need to figure out how to read with paramcode.**
+
+# Modules on Contrasts
+
+```{r}
+library(foundr)
+library(tidyverse)
+library(modulr)
+```
+
+```{r}
+LivMetSignal <- readRDS(file.path(harmonizeddir, "traitSignal.rds")) %>%
+  filter(dataset == "LivMet")
+LivMetStats <- readRDS(file.path(harmonizeddir, "traitStats.rds")) %>%
+  filter(dataset == "LivMet")
+```
+
+```{r}
+LivMetContr <- conditionContrasts(LivMetSignal, LivMetStats,
+                                  termname = "signal") %>%
+  filter(p.value <= 0.05)
+```
+
+```{r}
+LivMetModule <- listof_wgcnaModules(LivMetContr %>% select(-p.value))
+```
+
+```{r}
+LivMetEigen <- eigen_contrast(LivMetModule, LivMetContr)
+```
+  
+```{r}
+plot(LivMetEigen, bysex = "F+M")
+```
+
+```{r}
+plot(LivMetEigen, bysex = "F-M", volcano = TRUE, ylab = "eigen rank")
+```
+
+Compare eigentrait to traits
+
+```{r}
+object <- eigen_compare(LivMetModule, "F+M", "magenta", LivMetContr)
+```
+
+```{r}
+plot(object, bysex = "F+M")
+```
+
+```{r}
+plot(object, bysex = "F+M", volcano = TRUE, threshold = c(SD = 1, p = .1))
+```
+     
+```{r}
+traitModule <- list(LivMet = LivMetModule)
+saveRDS(traitModule, file.path(harmonizeddir, "traitModule.rds"))
+```
+
+## To do
+
+Can conditionContrasts be modified to have multiple p.value's?
+
+- download 4 datasets for Mark to play with
+- run on LivRna dataset
+- create data frame with
+  + p.value (signal, diet:strain, diet:strain:sex)
+  + modules (all 4)
+- correlations among modules
 
 # Mark's WGCNA Modules
 

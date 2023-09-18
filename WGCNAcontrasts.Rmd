@@ -25,7 +25,7 @@ getwd()
 
 ```{r}
 datadir <- "."
-datadir <- file.path(datadir, "Normalized")
+datadir <- file.path(datadir)
 ```
 
 ```{r}
@@ -60,20 +60,16 @@ For each trait, the `cellmean` and `noise` terms are uncorrelated, as are the `s
 Patterns emerge when comparing these components across traits within WGCNA modules. That is, a module identified with the `indivdual` response (the default approach) may represent primarily `signal`, which would be useful. However, if a module is primarily associated with `rest` or `noise`, it is less likely to yield interesting trait relationships. Further, comparing modules across responses might identify interesting subsets of modules for further study. 
 
 ```{r}
-datasets <- c("LivMet","PlaMet0","PlaMet120","Metab")
-responses <- c("value","cellmean","signal","rest","noise")
+#datasets <- c("LivMet","PlaMet0","PlaMet120","Metab")
+datasets <- "LivMet"
+sexes <- c("F","M","F+M","F-M")
+names(sexes) <- c("Female","Male","BothSexes","SexContrast")
+responses <- as.vector(sexes)
+#responses <- c("value","cellmean","signal","rest","noise")
 ```
 
 ```{r}
 traitModule <- readRDS(file.path(datadir, "traitModule.rds"))
-traitData <- 
-  dplyr::filter(
-      readRDS(file.path(datadir, "traitData.rds")),
-      dataset %in% datasets)
-traitSignal <-
-    dplyr::filter(
-      readRDS(file.path(datadir, "traitSignal.rds")),
-      dataset %in% datasets)
 ```
 
 ```{r}
@@ -86,17 +82,102 @@ shiny::fluidRow(
   shiny::column(
     6,
     shiny::selectInput(
-      "response", "Response:",
-      responses))
+      "response", "Sex Type:",
+      as.vector(sexes)))
 )
 ```
+
+# Module Correlations
+
+```{r}
+traitSignal <-
+    dplyr::filter(
+      readRDS(file.path(datadir, "traitSignal.rds")),
+      dataset %in% datasets)
+traitStats <-
+    dplyr::filter(
+      readRDS(file.path(datadir, "traitStats.rds")),
+      dataset %in% datasets)
+```
+
+```{r}
+traitContr <- shiny::reactive({
+  dplyr::filter(
+    foundr::conditionContrasts(
+      dplyr::filter(traitSignal,
+                    .data$dataset %in% shiny::req(input$dataset)),
+      dplyr::filter(traitStats,
+                    .data$dataset %in% shiny::req(input$dataset)),
+      termname = "signal"),
+    .data$p.value <= 0.05)
+})
+```
+
+```{r}
+traitEigen <- shiny::reactive({
+  shiny::req(input$dataset)
+  
+  modulr::eigen_contrast(traitModule[[input$dataset]],
+                              traitContr())
+})
+```
+  
+```{r}
+shiny::renderPlot({
+  plot(traitEigen(), bysex = shiny::req(input$response))
+})
+```
+
+```{r}
+shiny::renderPlot({
+  plot(traitEigen(), bysex = shiny::req(input$response),
+       volcano = TRUE)
+})
+```
+
+```{r}
+module_choices <- shiny::reactive({
+  unique(traitModule[[shiny::req(input$dataset)]][[shiny::req(input$response)]]$modules$module)
+})
+```
+
+## Module Choices
+
+```{r}
+shiny::renderText(module_choices())
+```
+
+```{r}
+shiny::renderUI({
+  shiny::selectInput("module", "Module:", shiny::req(module_choices()))
+})
+```
+
+```{r}
+eigenComp <- shiny::reactive({
+  modulr::eigen_compare(traitModule[[shiny::req(input$dataset)]],
+                          sexname = shiny::req(input$response),
+                          modulename = shiny::req(input$module),
+                          traitContr())
+})
+```
+
+This is not getting plotted.
+
+```{r}
+shiny::renderPlot({
+  plot(eigenComp(), bysex = shiny::req(input$response))
+})
+```
+
 
 # WGCNA 
 
 ```{r}
 shiny::renderPlot({
   shiny::req(input$dataset, input$response)
-  foundr::ggplot_listof_wgcnaModules(traitModule[[input$dataset]], input$response)
+  foundr::ggplot_listof_wgcnaModules(traitModule[[input$dataset]],
+                                     input$response)
 })
 ```
 
@@ -457,7 +538,16 @@ shiny::renderTable({
 })
 ```
 
-```{r}
+# Pair Data (Skipped)
+
+```{r eval=FALSE}
+traitData <- 
+  dplyr::filter(
+      readRDS(file.path(datadir, "traitData.rds")),
+      dataset %in% datasets)
+```
+
+```{r eval=FALSE}
 pairData <- shiny::reactive({
   shiny::req(pointKey())
   foundr::traitSolos(
@@ -470,7 +560,7 @@ pairData <- shiny::reactive({
 })
 ```
 
-```{r}
+```{r eval=FALSE}
 shiny::renderPlot({
   shiny::req(pairData())
   foundr::ggplot_traitPairs(
@@ -478,7 +568,7 @@ shiny::renderPlot({
 })
 ```
 
-```{r}
+```{r eval=FALSE}
 DT::renderDataTable({
   shiny::req(pairData(), pointKey())
   DT::datatable(
