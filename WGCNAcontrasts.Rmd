@@ -131,17 +131,32 @@ shiny::renderPlot({
 ```{r}
 shiny::renderPlot({
   plot(traitEigen(), bysex = shiny::req(input$response),
-       volcano = TRUE)
+       volcano = TRUE,
+       threshold = c(SD = 0.5, p = 0.1))
 })
 ```
+
+```{r}
+DT::renderDataTable({
+  shiny::req(traitEigen())
+  
+  summary(traitEigen())
+})
+```
+
+- set alpha close to one for conditionContrasts
+- separate these two parts by buttons
+- check on division by rawSD
+- titles and explanations
+- default choices for second part
+
+## Module Choices
 
 ```{r}
 module_choices <- shiny::reactive({
   unique(traitModule[[shiny::req(input$dataset)]][[shiny::req(input$response)]]$modules$module)
 })
 ```
-
-## Module Choices
 
 ```{r}
 shiny::renderText(module_choices())
@@ -162,11 +177,24 @@ eigenComp <- shiny::reactive({
 })
 ```
 
-This is not getting plotted.
-
 ```{r}
 shiny::renderPlot({
   plot(eigenComp(), bysex = shiny::req(input$response))
+})
+```
+
+```{r}
+shiny::renderPlot({
+  plot(eigenComp(), bysex = shiny::req(input$response), volcano = TRUE,
+       threshold = c(SD = 1, p = 0.2))
+})
+```
+
+```{r}
+DT::renderDataTable({
+  shiny::req(eigenComp())
+  
+  summary(eigenComp())
 })
 ```
 
