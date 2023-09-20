@@ -1,0 +1,32 @@
+---
+title: "Module Visualization"
+author: "Brian Yandell"
+date: "`r format(Sys.time(), '%d %B %Y')`"
+output: html_document
+runtime: shiny
+params:
+  echo: no
+  rootdir: ~/founder_diet_study
+---
+
+This document selects a `dataset` and examines WGCNA modules. Selecting a `Sex Type` enables visualization of stats for the modules as well as the WGCNA dendogram and color panel. 
+
+### Explanation of Responses
+
+The response for each trait can be partitioned into uncorrelated pieces that
+have useful interpretations. Letting `value` be the trait value for an organism, it is partitioned into the `cellmean` and `noise`. The `cellmean` is the part of the response explained by the model, and the `noise` is the residual. The `cellmean` can be decomposed into main effects and interactions involving the factors `strain`, `sex` and `condition`. However, generally we are interested in whether there are different `strain` responses to `condition`, in which case we are interested in the `signal` composed of `strain:condition` and `strain:sex:condition` interactions, with the `rest` of the model components conveniently combined.
+
+<center>
+```
+value = cellmean + noise
+cellmean = signal + rest
+value = signal + rest + noise
+
+signal = strain:condition + strain:sex:condition
+rest = strain + sex + condition + strain:sex + sex:condition
+```
+</center>
+
+For each trait, the `cellmean` and `noise` terms are uncorrelated, as are the `signal` and `rest` terms, which add up to the `cellmean`. That means their variances add up ($V_i = V_s + V_r + V_n$ and $V_c = V_s + V_r$), and the covariances of uncorrelated terms are 0 ($C_{cn} = 0, C_{sr} = 0$). This makes it possible later to compare across different datasets in interesting ways.
+
+Patterns emerge when comparing these components across traits within WGCNA modules. That is, a module identified with the `indivdual` response (the default approach) may represent primarily `signal`, which would be useful. However, if a module is primarily associated with `rest` or `noise`, it is less likely to yield interesting trait relationships. Further, comparing modules across responses might identify interesting subsets of modules for further study. 

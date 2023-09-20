@@ -79,7 +79,7 @@ plot(LivMetEigen, bysex = "F-M", volcano = TRUE, ylab = "eigen rank")
 Compare eigentrait to traits
 
 ```{r}
-object <- eigen_compare(LivMetModule, "F+M", "magenta", LivMetContr)
+object <- eigen_traits(LivMetModule, "F+M", "magenta", LivMetContr)
 ```
 
 ```{r}
