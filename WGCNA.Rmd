@@ -64,22 +64,34 @@ LivMetContr <- conditionContrasts(LivMetSignal, LivMetStats,
 LivMetModule <- listof_wgcnaModules(LivMetContr %>% select(-p.value))
 ```
 
+**There are kludges below because using outdated conditionContrasts for now.**
+
 ```{r}
-LivMetEigen <- eigen_contrast(LivMetModule, LivMetContr)
+LivMetEigen <- eigen_contrast(LivMetModule, LivMetContr) %>%
+  mutate(p.value = 10^-(max(module) + 1 - module))
 ```
-  
+
+```{r}
+summary(LivMetEigen)
+```
+
 ```{r}
 plot(LivMetEigen, bysex = "F+M")
 ```
 
+**Need to work on order of Y axis for module.**
+
 ```{r}
-plot(LivMetEigen, bysex = "F-M", volcano = TRUE, ylab = "eigen rank")
+plot(LivMetEigen, bysex = "F-M", volcano = TRUE, ordername = "module")
 ```
 
 Compare eigentrait to traits
 
 ```{r}
-object <- eigen_traits(LivMetModule, "F+M", "magenta", LivMetContr)
+object <- eigen_traits(LivMetModule, "F+M", "magenta",
+                       LivMetContr,
+                       LivMetEigen %>% select(-p.value)) %>%
+  mutate(p.value = 10 ^ -(1 - abs(pmin(0.99, kME))))
 ```
 
 ```{r}
@@ -87,7 +99,11 @@ plot(object, bysex = "F+M")
 ```
 
 ```{r}
-plot(object, bysex = "F+M", volcano = TRUE, threshold = c(SD = 1, p = .1))
+summary_conditionContrasts(LivMetEigen %>% select(-p.value))
+```
+
+```{r}
+plot(object %>% mutate(kME = abs(kME)), bysex = "F+M", volcano = TRUE, ordername = "kME")
 ```
      
 ```{r}
@@ -204,6 +220,59 @@ saveRDS(traitModule, file.path("Module", "traitModule.rds"))
 ```
 
 Use code below to create `moduleData`, `moduleStats`, `moduleSignal`.
+
+# Contrasts over Time: Enrich
+
+```{r}
+EnrichSignal <- readRDS(file.path(harmonizeddir, "traitSignal.rds")) %>%
+  filter(dataset == "Enrich")
+EnrichStats <- readRDS(file.path(harmonizeddir, "traitStats.rds")) %>%
+  filter(dataset == "Enrich")
+```
+
+```{r}
+EnrichContr <- conditionContrasts(EnrichSignal, EnrichStats,
+                                  termname = "signal")
+EnrichContrSignal <- EnrichContr %>%
+  rename(cellmean = "value") %>%
+  select(-p.value) %>%
+  mutate(dataset = "Enrich",
+         signal = cellmean)
+```
+
+```{r}
+(timetrait_selection <- timetraits(EnrichContrSignal, "minute"))
+```
+
+```{r}
+EnrichTimes <- traitTimes(
+        EnrichContrSignal, EnrichContrSignal,
+        timetrait_selection[1], "cellmean", "minute")
+```
+
+```{r}
+ggplot_traitTimes(EnrichTimes)
+```
+
+
+```{r}
+ggplot_traitTimes(EnrichTimes, facet_strain = TRUE)
+```
+
+Basic idea:
+
+- clone shinyContrastPanel to shinyContrast
+- redesign shinyContrastPanel to call
+  + shinyContrast: stuff as is
+  + shinyTimesPanel: use stuff above
+  + shinyModuleStuff: use stuff above on sex-based modules
+  
+Other important idea:
+
+- examine WGCNA params, esp beta
+- set up graphic using WGCNAcontrasts with one level deeper
+  + dataset, sex, beta
+- determine if beta (or other parameters matter)
 
 # WGCNA 
 

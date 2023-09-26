@@ -97,8 +97,11 @@ traitContr <- shiny::reactive({
 traitEigen <- shiny::reactive({
   shiny::req(input$dataset)
   
-  modulr::eigen_contrast(traitModule[[input$dataset]],
-                              traitContr())
+  dplyr::mutate(
+    modulr::eigen_contrast(traitModule[[input$dataset]],
+                              traitContr()),
+    module = -log10(p.value))
+
 })
 ```
   
@@ -111,8 +114,7 @@ shiny::renderPlot({
 ```{r}
 shiny::renderPlot({
   plot(traitEigen(), bysex = shiny::req(input$response),
-       volcano = TRUE,
-       threshold = c(SD = 0.5, p = 0.1))
+       volcano = TRUE, ordername = "module")
 })
 ```
 
@@ -144,10 +146,12 @@ shiny::renderUI({
 
 ```{r}
 eigenComp <- shiny::reactive({
+  dplyr::mutate(
   modulr::eigen_traits(traitModule[[shiny::req(input$dataset)]],
                           sexname = shiny::req(input$response),
                           modulename = shiny::req(input$module),
-                          traitContr())
+                          traitContr()),
+  kME = -log10(p.value))
 })
 ```
 
@@ -160,8 +164,7 @@ shiny::renderPlot({
 ```{r}
 shiny::renderPlot({
   plot(eigenComp(), bysex = shiny::req(input$response), volcano = TRUE,
-       threshold = c(SD = 1, p = 0.2),
-       ylab("eigen -log10(1-|kME|)"))
+       ordername = "kME")
 })
 ```
 
