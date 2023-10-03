@@ -1,0 +1,84 @@
+---
+title: "Derived"
+author: "Brian Yandell"
+date: "2023-10-03"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+I have an idea how to incorporate derived traits into the tool. Basically, we create a spreadsheet (CSV or XLSX) with columns for:
+Left      Operator         Right    Derived
+Glucose           -           lactate glu_over_lac
+Lactate             -           pyr       lac_over_pyr
+Glc_M1            +          Glc_M2            Glc_M1-2
+ 
+We might want some special way to combine multiple traits (Say Glc M1-5).
+ 
+In addition, I want to set this up so that we can operate on GTT measurements, such as
+Glc_13C_M3_0_18wk to Glc_13C_M3_120_18wk together are known as Glc_13C_M3_18wk,
+So we could do Glc_13C_M1_18wk + Glc_13C_M2_18wk to get the sum of these two as a new trait over time, Glc_13C_M1-2_18wk.
+
+```{r}
+library(dplyr)
+library(tidyr)
+library(readr)
+```
+
+```{r}
+dirpath <- file.path("~", "founder_diet_study")
+dirpath <- file.path(dirpath, "HarmonizedData")
+traitSignal <- readRDS(file.path(dirpath, "traitSignal.rds")) %>%
+  filter(dataset == "LivMet")
+```
+
+```{r}
+derived <- read_csv("data/derived.csv") %>%
+  pivot_longer(any_of(c("Left","Right")), names_to = "Side", values_to = "datatrait")
+```
+
+```{r}
+derivedSignal <- 
+  left_join(
+    derived,
+    traitSignal %>%
+      unite(datatrait, dataset, trait, sep = ": "),
+    by = "datatrait",
+    relationship = "many-to-many")
+```
+
+
+```{r}
+derivedSignal %>%
+  select(-datatrait, -signal) %>%
+  pivot_wider(names_from = "Side", values_from = "cellmean") %>%
+  arrange(strain, sex, condition, Derived) %>%
+  mutate(newtrait = Left - Right,
+         newtrait = ifelse(Operator == "+", Left + Right, newtrait),
+         newtrait = ifelse(Operator == "/", Left / Right, newtrait),
+         newtrait = ifelse(Operator == "*", Left * Right, newtrait)) %>%
+  select(-Operator, -Left, -Right) %>%
+  rename(trait = "Derived",
+         value = "newtrait") %>%
+  select(strain, sex, condition, trait, value)
+```
+
+
+```{r}
+rightSignal <- 
+  left_join(
+    derived %>%
+      select(Right, Derived) %>%
+      rename(datatrait = "Right"),
+    traitSignal %>%
+      unite(datatrait, dataset, trait, sep = ": "),
+    by = "datatrait")
+```
+
+```{r}
+full_join(leftSignal, rightSignal,
+          by = c("Derived", "strain", "sex", ""))
+```
+

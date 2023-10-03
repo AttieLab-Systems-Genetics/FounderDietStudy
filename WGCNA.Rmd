@@ -55,13 +55,74 @@ LivMetStats <- readRDS(file.path(harmonizeddir, "traitStats.rds")) %>%
 ```
 
 ```{r}
+sexes <- c("Both Sexes", "Female", "Male", "Sex Contrast")
+names(sexes) <- c("F+M", "F", "M", "F-M")
+```
+
+```{r}
 LivMetContr <- conditionContrasts(LivMetSignal, LivMetStats,
                                   termname = "signal") %>%
   filter(p.value <= 0.05)
 ```
 
 ```{r}
-LivMetModule <- listof_wgcnaModules(LivMetContr %>% select(-p.value))
+LivMetMod <- list()
+# More than 13 causes crash.
+for(size in seq(from = 2, to = 13)) {
+  cat(size)
+  LivMetMod[[paste0("size=", size)]] <- 
+    listof_wgcnaModules(LivMetContr %>% select(-p.value),
+                        params = list(power = 30, minSize = size))
+}
+LivMetMod <- transpose(LivMetMod)
+```
+
+```{r}
+ggplot_listof_wgcnaModules(LivMetMod[["Both Sexes"]], "size=4")
+```
+
+```{r}
+LivMetMod <- list()
+for(beta in seq(from = 5, to = 30, by = 5)) {
+  cat(beta)
+  LivMetMod[[paste0("beta=", beta)]] <- 
+    listof_wgcnaModules(LivMetContr %>% select(-p.value),
+                        params = list(power = 30, minSize = 4))
+}
+LivMetMod <- transpose(LivMetMod)
+```
+
+```{r}
+ggplot_listof_wgcnaModules(LivMetMod[["Both Sexes"]], "beta=30")
+```
+
+```{r}
+top <- wgcna_topology(
+  LivMetContr %>% 
+    select(-p.value) %>%
+    filter(sex == "Both Sexes"),
+  power = seq(from = 5, to = 30, by = 5))
+```
+
+```{r}
+ggplot_wgcna_topology(top)
+```
+
+```{r}
+top <- wgcna_topology(
+  LivMetContr %>%
+    select(-p.value) %>%
+    filter(sex == "Sex Contrast"),
+  power = c(5,10,15,20,25,30,35,40))
+```
+
+```{r}
+ggplot_wgcna_topology(top)
+```
+
+```{r}
+LivMetModule <- listof_wgcnaModules(LivMetContr %>% select(-p.value),
+                                    params = list(power = 30, minSize = 6))
 ```
 
 **There are kludges below because using outdated conditionContrasts for now.**
@@ -76,34 +137,42 @@ summary(LivMetEigen)
 ```
 
 ```{r}
-plot(LivMetEigen, bysex = "F+M")
+plot(LivMetEigen, bysex = "Both Sexes")
 ```
 
-**Need to work on order of Y axis for module.**
+```{r}
+plot(LivMetEigen, bysex = "Both Sexes", volcano = TRUE,
+                 threshold = c(SD = 0.5))
+```
 
 ```{r}
-plot(LivMetEigen, bysex = "F-M", volcano = TRUE, ordername = "module")
+plotly::ggplotly(plot(LivMetEigen, bysex = "Both Sexes", volcano = TRUE,
+                 threshold = c(SD = 0.5)))
 ```
 
 Compare eigentrait to traits
 
 ```{r}
-object <- eigen_traits(LivMetModule, "F+M", "magenta",
+object <- eigen_traits(LivMetModule, "Both Sexes", "green",
                        LivMetContr,
                        LivMetEigen %>% select(-p.value)) %>%
   mutate(p.value = 10 ^ -(1 - abs(pmin(0.99, kME))))
 ```
 
 ```{r}
-plot(object, bysex = "F+M")
+plot(object, bysex = "Both Sexes")
 ```
 
 ```{r}
-summary_conditionContrasts(LivMetEigen %>% select(-p.value))
+summary(LivMetEigen)
 ```
 
+**Could add color for -kME?**
+**Why are outliers not colored below?**
+
 ```{r}
-plot(object %>% mutate(kME = abs(kME)), bysex = "F+M", volcano = TRUE, ordername = "kME")
+plot(object %>% mutate(kME = abs(kME)), bysex = "Both Sexes", volcano = TRUE,
+     threshold = c(kME = 0.8))
 ```
      
 ```{r}
@@ -121,6 +190,54 @@ Can conditionContrasts be modified to have multiple p.value's?
   + p.value (signal, diet:strain, diet:strain:sex)
   + modules (all 4)
 - correlations among modules
+
+# Contrasts over Time: Enrich
+
+```{r}
+EnrichSignal <- readRDS(file.path(harmonizeddir, "traitSignal.rds")) %>%
+  filter(dataset == "Enrich")
+EnrichStats <- readRDS(file.path(harmonizeddir, "traitStats.rds")) %>%
+  filter(dataset == "Enrich")
+```
+
+```{r}
+EnrichContr <- conditionContrasts(EnrichSignal, EnrichStats,
+                                  termname = "signal")
+EnrichContrSignal <- foundr:::contrast2signal(EnrichContr)
+```
+
+```{r}
+(timetrait_selection <- timetraits(EnrichContrSignal, "minute"))
+```
+
+```{r}
+EnrichTimes <- traitTimes(
+        EnrichContrSignal, EnrichContrSignal, EnrichStats,
+        timetrait_selection[1], "minute", "cellmean")
+```
+
+```{r}
+ggplot_traitTimes(EnrichTimes$traits)
+```
+
+```{r}
+ggplot_traitTimes(EnrichTimes$traits, facet_strain = TRUE)
+```
+
+Basic idea:
+
+- clone shinyContrastPanel to shinyContrast
+- redesign shinyContrastPanel to call
+  + shinyContrast: stuff as is
+  + shinyTimesPanel: use stuff above
+  + shinyModuleStuff: use stuff above on sex-based modules
+  
+Other important idea:
+
+- examine WGCNA params, esp beta
+- set up graphic using WGCNAcontrasts with one level deeper
+  + dataset, sex, beta
+- determine if beta (or other parameters matter)
 
 # Mark's WGCNA Modules
 
@@ -220,59 +337,6 @@ saveRDS(traitModule, file.path("Module", "traitModule.rds"))
 ```
 
 Use code below to create `moduleData`, `moduleStats`, `moduleSignal`.
-
-# Contrasts over Time: Enrich
-
-```{r}
-EnrichSignal <- readRDS(file.path(harmonizeddir, "traitSignal.rds")) %>%
-  filter(dataset == "Enrich")
-EnrichStats <- readRDS(file.path(harmonizeddir, "traitStats.rds")) %>%
-  filter(dataset == "Enrich")
-```
-
-```{r}
-EnrichContr <- conditionContrasts(EnrichSignal, EnrichStats,
-                                  termname = "signal")
-EnrichContrSignal <- EnrichContr %>%
-  rename(cellmean = "value") %>%
-  select(-p.value) %>%
-  mutate(dataset = "Enrich",
-         signal = cellmean)
-```
-
-```{r}
-(timetrait_selection <- timetraits(EnrichContrSignal, "minute"))
-```
-
-```{r}
-EnrichTimes <- traitTimes(
-        EnrichContrSignal, EnrichContrSignal,
-        timetrait_selection[1], "cellmean", "minute")
-```
-
-```{r}
-ggplot_traitTimes(EnrichTimes)
-```
-
-
-```{r}
-ggplot_traitTimes(EnrichTimes, facet_strain = TRUE)
-```
-
-Basic idea:
-
-- clone shinyContrastPanel to shinyContrast
-- redesign shinyContrastPanel to call
-  + shinyContrast: stuff as is
-  + shinyTimesPanel: use stuff above
-  + shinyModuleStuff: use stuff above on sex-based modules
-  
-Other important idea:
-
-- examine WGCNA params, esp beta
-- set up graphic using WGCNAcontrasts with one level deeper
-  + dataset, sex, beta
-- determine if beta (or other parameters matter)
 
 # WGCNA 
 
