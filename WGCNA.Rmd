@@ -66,6 +66,30 @@ LivMetContr <- conditionContrasts(LivMetSignal, LivMetStats,
 ```
 
 ```{r}
+top <- wgcna_topology(
+  LivMetContr %>% 
+    select(-p.value) %>%
+    filter(sex == "Both Sexes"),
+  power = seq(from = 5, to = 30, by = 5))
+```
+
+```{r}
+ggplot_wgcna_topology(top)
+```
+
+```{r}
+top <- wgcna_topology(
+  LivMetContr %>%
+    select(-p.value) %>%
+    filter(sex == "Sex Contrast"),
+  power = c(5,10,15,20,25,30,35,40))
+```
+
+```{r}
+ggplot_wgcna_topology(top)
+```
+
+```{r}
 LivMetMod <- list()
 # More than 13 causes crash.
 for(size in seq(from = 2, to = 13)) {
@@ -94,30 +118,6 @@ LivMetMod <- transpose(LivMetMod)
 
 ```{r}
 ggplot_listof_wgcnaModules(LivMetMod[["Both Sexes"]], "beta=30")
-```
-
-```{r}
-top <- wgcna_topology(
-  LivMetContr %>% 
-    select(-p.value) %>%
-    filter(sex == "Both Sexes"),
-  power = seq(from = 5, to = 30, by = 5))
-```
-
-```{r}
-ggplot_wgcna_topology(top)
-```
-
-```{r}
-top <- wgcna_topology(
-  LivMetContr %>%
-    select(-p.value) %>%
-    filter(sex == "Sex Contrast"),
-  power = c(5,10,15,20,25,30,35,40))
-```
-
-```{r}
-ggplot_wgcna_topology(top)
 ```
 
 ```{r}
