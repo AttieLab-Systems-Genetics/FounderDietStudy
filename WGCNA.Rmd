@@ -111,7 +111,7 @@ for(beta in seq(from = 5, to = 30, by = 5)) {
   cat(beta)
   LivMetMod[[paste0("beta=", beta)]] <- 
     listof_wgcnaModules(LivMetContr %>% select(-p.value),
-                        params = list(power = 30, minSize = 4))
+                        params = list(power = beta, minSize = 4))
 }
 LivMetMod <- transpose(LivMetMod)
 ```
@@ -128,13 +128,14 @@ LivMetModule <- listof_wgcnaModules(LivMetContr %>% select(-p.value),
 **There are kludges below because using outdated conditionContrasts for now.**
 
 ```{r}
-LivMetEigen <- eigen_contrast(LivMetModule, LivMetContr) %>%
-  mutate(p.value = 10^-(max(module) + 1 - module))
+LivMetEigen <- eigen_contrast(LivMetModule, LivMetContr)
 ```
 
 ```{r}
 summary(LivMetEigen)
 ```
+
+** Note change on workbench to ggplot_conditionContrasts for ordername.**
 
 ```{r}
 plot(LivMetEigen, bysex = "Both Sexes")
@@ -155,8 +156,7 @@ Compare eigentrait to traits
 ```{r}
 object <- eigen_traits(LivMetModule, "Both Sexes", "green",
                        LivMetContr,
-                       LivMetEigen %>% select(-p.value)) %>%
-  mutate(p.value = 10 ^ -(1 - abs(pmin(0.99, kME))))
+                       LivMetEigen)
 ```
 
 ```{r}
@@ -166,9 +166,6 @@ plot(object, bysex = "Both Sexes")
 ```{r}
 summary(LivMetEigen)
 ```
-
-**Could add color for -kME?**
-**Why are outliers not colored below?**
 
 ```{r}
 plot(object %>% mutate(kME = abs(kME)), bysex = "Both Sexes", volcano = TRUE,
