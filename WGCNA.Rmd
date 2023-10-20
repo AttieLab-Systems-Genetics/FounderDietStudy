@@ -37,15 +37,162 @@ BiocManager::install("impute")
 BiocManager::install("preprocessCore")
 ```
 
-** Need to figure out how to read with paramcode.**
-
-# Modules on Contrasts
-
 ```{r}
 library(foundr)
 library(tidyverse)
 library(modulr)
 ```
+
+```{r}
+datasets <- c("Physio","LivMet","PlaMetAll","Lipid","LivRna","LivMet","PlaEnrich")
+pvalmax <- 0.05
+```
+
+# Contrasts
+
+```{r}
+filename <- file.path(harmonizeddir, "traitContrast.rds")
+traitContrast <- list()
+for(mod in c(datasets)) {
+  dirname <- file.path(harmonizeddir, mod)
+  modname <- paste0(mod, "Module")
+  cat(modname, "\n")
+
+  traitContrast[[mod]] <- 
+    foundr::conditionContrasts(
+      dplyr::mutate(
+        readRDS(file.path(harmonizeddir, mod, paste0(mod, "Signal.rds"))),
+        dataset = mod),
+      dplyr::mutate(
+        readRDS(file.path(harmonizeddir, mod, paste0(mod, "Stats.rds"))),
+        dataset = mod),
+      termname = "signal")
+}
+class(traitContrast) <- c("conditionContrasts", class(traitContrast))
+traitContrast <- c(traitContast)
+saveRDS(traitContrast, filename)
+```
+
+# WGCNA 
+
+Save RDS module information for each dataset.
+
+```{r}
+if(!exists("traitContrast")) {
+  filename <- file.path(harmonizeddir, "traitContrast.rds")
+  traitContrast <- readRDS(filename)
+}
+```
+
+```{r}
+for(mod in datasets) {
+  modname <- paste0(mod, "Module")
+  cat(modname, "\n")
+  filename <- file.path(harmonizeddir, mod, paste0(mod, "Module.rds")) 
+  # Create list of WGCNA modules.
+  contr <- dplyr::filter(traitContrast, .data$dataset == mod, .data$p.value <= pvalmax)
+  # Assign list of WGCNA modules 
+  assign(modname, modulr::listof_wgcnaModules(dplyr::select(contr, -p.value)))
+    
+  # Save listof_wgcnaModules object.
+  saveRDS(get(modname), filename)
+}
+```
+
+Create `traitModule` object as list of dataset module objects.
+
+```{r}
+filename <- file.path(harmonizeddir, "traitModule.rds")
+traitModule <- list()
+for(mod in c(datasets)) {
+  dirname <- file.path(harmonizeddir, mod)
+  modname <- paste0(mod, "Module")
+  traitModule[[mod]] <- readRDS(file.path(dirname, paste0(modname, ".rds")))
+}
+attr(traitModule, "p.value") <- pvalmax
+saveRDS(traitModule, filename)
+```
+
+```{r}
+summary(traitModule[["LivMet"]], "Both Sexes")
+```
+
+# Eigentraits
+
+```{r}
+if(!exists("traitContrast")) {
+  filename <- file.path(harmonizeddir, "traitContrast.rds")
+  traitContrast <- readRDS(filename)
+}
+```
+
+```{r}
+if(!exists("traitModule")) {
+  filename <- file.path(harmonizeddir, "traitModule.rds")
+  traitModule <- readRDS(filename)
+}
+```
+
+```{r}
+filename <- file.path(harmonizeddir, "traitEigen.rds")
+traitEigen <- list()
+for(mod in c(datasets)) {
+  dirname <- file.path(harmonizeddir, mod)
+  modname <- paste0(mod, "Eigen")
+  cat(modname, "\n")
+  traitEigen[[mod]] <- foundr::eigen_contrast(traitModule[[mod]], 
+    dplyr::filter(traitContrast, .data$dataset %in% mod))
+}
+saveRDS(traitModule, filename)
+```
+
+```{r}
+LivMetEigen <- 
+  foundr::eigen_contrast(traitModule$LivMet, traitContrast$LivMet)
+```
+
+```{r}
+summary(LivMetEigen)
+```
+
+** Note change on workbench to ggplot_conditionContrasts for ordername.**
+
+```{r}
+plot(LivMetEigen, bysex = "Both Sexes")
+```
+
+```{r}
+plot(LivMetEigen, bysex = "Both Sexes", volcano = TRUE,
+                 threshold = c(SD = 0.5))
+```
+
+```{r}
+plotly::ggplotly(plot(LivMetEigen, bysex = "Both Sexes", volcano = TRUE,
+                 threshold = c(SD = 0.5)))
+```
+
+Compare eigentrait to traits
+
+```{r}
+object <- eigen_traits(LivMetModule, "Both Sexes", "green",
+                       LivMetContr,
+                       LivMetEigen)
+```
+
+```{r}
+plot(object, bysex = "Both Sexes")
+```
+
+```{r}
+summary(LivMetEigen)
+```
+
+```{r}
+plot(object %>% mutate(kME = abs(kME)), bysex = "Both Sexes", volcano = TRUE,
+     threshold = c(kME = 0.8))
+```
+
+# Modules on Contrasts
 
 ```{r}
 LivMetSignal <- readRDS(file.path(harmonizeddir, "traitSignal.rds")) %>%
@@ -64,6 +211,8 @@ LivMetContr <- conditionContrasts(LivMetSignal, LivMetStats,
                                   termname = "signal") %>%
   filter(p.value <= 0.05)
 ```
+
+## Module Topology
 
 ```{r}
 top <- wgcna_topology(
@@ -170,11 +319,6 @@ summary(LivMetEigen)
 ```{r}
 plot(object %>% mutate(kME = abs(kME)), bysex = "Both Sexes", volcano = TRUE,
      threshold = c(kME = 0.8))
-```
-     
-```{r}
-traitModule <- list(LivMet = LivMetModule)
-saveRDS(traitModule, file.path(harmonizeddir, "traitModule.rds"))
 ```
 
 ## To do
@@ -320,8 +464,7 @@ LivGeneModule <- markHarmony(
 
 ```{r}
 getwd()
-normdir <- "Normalized"
-filename <- file.path(normdir, "traitModule.rds")
+filename <- "traitModule.rds"
 traitModule <- readRDS(filename)
 ```
 
@@ -333,68 +476,19 @@ traitModule$Metab <- MetabModule
 saveRDS(traitModule, file.path("Module", "traitModule.rds"))
 ```
 
-Use code below to create `moduleData`, `moduleStats`, `moduleSignal`.
-
-# WGCNA 
-
-Read or save (RDS) module information for each dataset.
-
 ```{r}
-datasets <- c("LivMet","PlaMet0","PlaMet120","LivRna","LivMet")
-```
-
-```{r}
-for(mod in datasets) {
-  modname <- paste0(mod, "Module")
-  if(file.exists(
-    filename <- file.path(harmonizeddir, mod, paste0(mod, "Module.rds")))) {
-    assign(modname, readRDS(filename))
-  } else {
-    # Create list of WGCNA modules.
-    assign(modname, 
-      modulr::listof_wgcnaModules(
-        readRDS(file.path(harmonizeddir, mod, paste0(mod, "Data", ".rds"))),
-        readRDS(file.path(harmonizeddir, mod, paste0(mod, "Signal", ".rds")))))
-    
-    # Save listof_wgcnaModules object.
-    saveRDS(
-      get(modname),
-      filename)
-  }
-}
-```
-
-Create `traitModule` object as list of dataset module objects.
-
-```{r}
-normdir <- "Normalized"
-if(file.exists(
-  filename <- file.path(harmonizeddir, normdir, "traitModule.rds"))) {
-  traitModule <- readRDS(filename)
-} else {
-  traitModule <- list()
-  for(mod in c(datasets, "Metab")) {
-    dirname <- file.path(harmonizeddir, mod)
-    modname <- paste0(mod, "Module")
-    files <- list.files(dirname, modname)
-    if(length(files)) {
-      traitModule[[mod]] <- readRDS(file.path(dirname, files[1]))
-    }
-  }
-  saveRDS(traitModule, filename)
-}
-```
-
-```{r}
-summary(traitModule[["LivMet"]], "signal")
+knitr::knit_exit()
 ```
 
 # Module Harmony
 
+Use code below to create `moduleData`, `moduleStats`, `moduleSignal`.
+This does not work for contrasts as cannot (yet) return to full data on 192 mice.
+
 ```{r}
 moduleData <- 
   dplyr::mutate(
-    foundr::moduleHarmony("Module",, traitModule, response = "value"),
+    foundr::moduleHarmony("Module",, traitModule, response = "Both Sexes"),
     dataset = "Module")
 ```
 

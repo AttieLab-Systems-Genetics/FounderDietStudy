@@ -9,6 +9,7 @@ dirpath <- file.path(".")
 liverData <- readRDS(file.path(dirpath, "liverData.rds"))
 liverSignal <- readRDS(file.path(dirpath, "liverSignal.rds"))
 liverStats <- readRDS(file.path(dirpath, "liverStats.rds"))
+liverModule <- readRDS(file.path(dirpath, "traitModule.rds"))
 
 #source("appSetup.R")
 datasets <- readRDS("datasets.rds")
@@ -29,7 +30,7 @@ server <- function(input, output, session) {
   
   foundr::server(input, output, session,
                  liverData, liverSignal, liverStats,
-                 customSettings)
+                 customSettings, liverModule)
   
   # Allow reconnect with Shiny Server.
   session$allowReconnect(TRUE)

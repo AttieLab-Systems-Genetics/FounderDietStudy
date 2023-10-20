@@ -9,6 +9,7 @@ dirpath <- file.path(".")
 traitData <- readRDS(file.path(dirpath, "traitData.rds"))
 traitSignal <- readRDS(file.path(dirpath, "traitSignal.rds"))
 traitStats <- readRDS(file.path(dirpath, "traitStats.rds"))
+traitModule <- readRDS(file.path(dirpath, "traitModule.rds"))
 
 #source("../appSetup.R")
 datasets <- readRDS("datasets.rds")
@@ -31,7 +32,7 @@ server <- function(input, output, session) {
   
   foundr::server(input, output, session,
                  traitData, traitSignal, traitStats,
-                 customSettings)
+                 customSettings, traitModule)
   
   # Allow reconnect with Shiny Server.
   session$allowReconnect(TRUE)
