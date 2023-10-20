@@ -148,7 +148,8 @@ saveRDS(traitModule, filename)
 
 ```{r}
 LivMetEigen <- 
-  foundr::eigen_contrast(traitModule$LivMet, traitContrast$LivMet)
+  foundr::eigen_contrast(traitModule$LivMet,
+                         traitContrast %>% filter(dataset == "LivMet"))
 ```
 
 ```{r}
@@ -174,9 +175,35 @@ plotly::ggplotly(plot(LivMetEigen, bysex = "Both Sexes", volcano = TRUE,
 Compare eigentrait to traits
 
 ```{r}
-object <- eigen_traits(LivMetModule, "Both Sexes", "green",
+LivMetModule <- traitModule[["LivMet"]]
+LivMetContr <- traitContrast %>% filter(dataset == "LivMet")
+```
+
+```{r}
+object <- eigen_traits(LivMetModule, "Both Sexes", "B_green",
                        LivMetContr,
                        LivMetEigen)
+```
+
+```{r}
+object %>% arrange(p.value)
+```
+
+```{r}
+ggplot(object) + aes(abs(kME), -log10(p.value)) + geom_point()
+```
+
+** Plot by p.value as alternative to kME. **
+** Assign min p.value to each module. **
+
+```{r}
+modules <- (LivMetEigen %>% filter(sex == "Both Sexes") %>% distinct(trait))$trait
+names(modules) <- modules
+(eigen_p.value <- unlist(purrr::map(modules,
+           function(x) min(eigen_traits(LivMetModule, "Both Sexes", x,
+                       LivMetContr,
+                       LivMetEigen)$p.value, na.rm = TRUE))))
+
 ```
 
 ```{r}
@@ -190,6 +217,12 @@ summary(LivMetEigen)
 ```{r}
 plot(object %>% mutate(kME = abs(kME)), bysex = "Both Sexes", volcano = TRUE,
      threshold = c(kME = 0.8))
+```
+
+```{r}
+objectp <- object
+attr(objectp, "ordername") <- "p.value"
+plot(objectp, bysex = "Both Sexes", volcano = TRUE)
 ```
 
 # Modules on Contrasts
