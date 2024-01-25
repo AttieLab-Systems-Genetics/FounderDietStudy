@@ -78,6 +78,15 @@ harmonize("Physio", links, PhysioHarmony, condition_name = "diet",
 
 ## PlaMet: Plasma metabolites
 
+These are data prepared by Mark using an Excel script.
+
+```{r warning = FALSE}
+harmonize("PlaMet", links, EnrichHarmony, annot, skiprows = 4,
+          condition_name = condition_name, normalize = normalize)
+```
+
+## PlaMet0: Plasma metabolites
+
 ```{r warning = FALSE}
 harmonize("PlaMet0", links, MetHarmony, annot, skiprows = 4,
           condition_name = condition_name, normalize = normalize)

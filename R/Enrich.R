@@ -1,15 +1,28 @@
 EnrichHarmony <- function(dataset, links, annot, ...) {
   filename <- linkpath(dataset, links)
   
+  if(tools::file_ext(filename) == "csv") {
+    readfn <- function(filename, skip, n_max = Inf, name_repair = "unique",
+                       col_names = TRUE) {
+      read_csv(filename, skip = skip, n_max = n_max, col_names = col_names,
+               name_repair = name_repair)
+    }
+  } else {
+    readfn <- function(filename, skip, n_max = Inf, name_repair = "unique",
+                       col_names = TRUE) {
+      read_excel(filename, sheet = 1,
+                 skip = skip, n_max = n_max, col_names = col_names,
+                 .name_repair = name_repair)
+    }
+  }
+  
   # Get trait names from 2nd row.
-  traits <- unlist(read_excel(filename, sheet = 1,
-                      skip = 1, n_max = 1, col_names = FALSE)[1,])
-  traits <- traits[!is.na(traits)]
+  traits <- unlist(readfn(filename, 1, 1, col_names = FALSE)[1,])
+  traits <- unique(traits[!is.na(traits)])
   names(traits) <- NULL
   
   # Read data and pivot to longer format; rename animal and sex.
-  out <- read_excel(filename, sheet = 1, skip = 2,
-             .name_repair = "minimal") %>% 
+  out <- readfn(filename, 2, name_repair = "minimal") %>% 
     pivot_longer(-(strain:Sexes),
                  names_to = "minutes", values_to = "value") %>%
     

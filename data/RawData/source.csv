@@ -13,3 +13,4 @@ Lipid,../Primary data from Mark/HollandW AtkinsonD 20230327 founder LIVER LIPIDS
 PlaEnrich,../Primary data from Mark/06202023_Founder_Plasma_All_Timepoints_13C_labels_Glc_Lac_Ala_Cit_Gln_Suc_Mal_QS.xlsx,Plasma Time Points
 PlaMetAll,../Primary data from Mark/08Aug23_Founder_Data_To_Wisconsin/01Aug23_Founder_Plasma_all_Timepoints_Metabolomics_combined_unique_isobars_removed_To_Wisconsin.xlsx,Plasma All Time Points
 LivEnrich,../Primary data from Mark/08Aug23_Founder_Data_To_Wisconsin/07Aug2023_Founder_Liver_D_labels_Enrichment_To_Wisconsin.xlsx,Liver Enrichment
+PlaMet,../Primary data from Mark/Plasma metabolites for AUC calculation for unlabeled Deuterium and 13C enrichment data sets.csv,Plasma Metabolites
