@@ -4,6 +4,7 @@ devtools::install_cran("cowplot") #  not yet on UW dataviz
 devtools::install_cran("ggdendro") #  not yet on UW dataviz
 #devtools::install_cran("RSQLite") #  not yet on UW dataviz
 devtools::install_github("byandell/foundr")
+options(shiny.sanitize.errors = FALSE)
 
 dirpath <- file.path(".")
 traitData <- readRDS(file.path(dirpath, "traitData.rds"))
