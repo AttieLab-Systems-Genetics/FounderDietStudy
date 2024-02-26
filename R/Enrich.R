@@ -22,9 +22,9 @@ EnrichHarmony <- function(dataset, links, annot, ...) {
   names(traits) <- NULL
   
   # Read data and pivot to longer format; rename animal and sex.
-  out <- readfn(filename, 2, name_repair = "minimal") %>% 
+  out <- readfn(filename, 2, name_repair = "minimal") |> 
     pivot_longer(-(strain:Sexes),
-                 names_to = "minutes", values_to = "value") %>%
+                 names_to = "minutes", values_to = "value") |>
     
     # Rename animal and sex.
     rename(animal = "number",
@@ -32,23 +32,25 @@ EnrichHarmony <- function(dataset, links, annot, ...) {
     
   # Add diet column
   out <- left_join(
-    out,
-    annot %>%
+    # Some sexes have changed
+    out |>
+      select(-sex),
+    annot |>
       rename(animal = "number",
-             condition = "diet") %>%
+             condition = "diet") |>
       select(strain, animal, sex, condition),
-    by = c("strain","animal","sex")) 
+    by = c("strain","animal")) 
   
   # Determine number of samples and number of time points.
-  nsample <- out %>%
-    distinct(strain,animal,sex) %>%
+  nsample <- out |>
+    distinct(strain,animal,sex) |>
     count()
-  ntime <- out %>%
-    distinct(minutes) %>% count()
+  ntime <- out |>
+    distinct(minutes) |> count()
   
   # Add trait names from row 2 of file.
   # Assume here the same number of time points per trait.
-  out <- out %>%
+  out <- out |>
     mutate(
       trait =
         rep(
@@ -64,15 +66,15 @@ EnrichHarmony <- function(dataset, links, annot, ...) {
   
   # These are harmonized columns and their names.
   out <- bind_rows(
-    out %>%
+    out |>
       
       # Unite trait and minutes to form new trait by minutes.
       unite(
         trait,
-        trait, minutes) %>%
+        trait, minutes) |>
       select(strain, sex, animal, condition, trait, value),
-    auc %>%
-      select(strain, sex, animal, condition, trait, value)) %>%
+    auc |>
+      select(strain, sex, animal, condition, trait, value)) |>
     
     # Make sure animal is character.
     # Add `_18wk` to end of trait names.

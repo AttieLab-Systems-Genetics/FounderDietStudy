@@ -1,5 +1,5 @@
 This study has two diets (`HC_LF` = high carb, low fat; `HF_LC` = high
-fat, low carb) with 9 measurement sets collected on 192 mice:
+fat, low carb) with 6 measurement sets collected on 192 mice:
 
 <table>
 <thead>
@@ -12,14 +12,6 @@ fat, low carb) with 9 measurement sets collected on 192 mice:
 <tr class="odd">
 <td style="text-align: left;">Physio</td>
 <td style="text-align: left;">In Vivo Physiological traits</td>
-</tr>
-<tr class="even">
-<td style="text-align: left;">PlaMet0</td>
-<td style="text-align: left;">Plasma metabolites 0min</td>
-</tr>
-<tr class="odd">
-<td style="text-align: left;">PlaMet120</td>
-<td style="text-align: left;">Plasma metabolites 120min</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">LivMet</td>
@@ -38,10 +30,6 @@ fat, low carb) with 9 measurement sets collected on 192 mice:
 <td style="text-align: left;">Plasma Time Points</td>
 </tr>
 <tr class="even">
-<td style="text-align: left;">PlaMetAll</td>
-<td style="text-align: left;">Plasma All Time Points</td>
-</tr>
-<tr class="odd">
 <td style="text-align: left;">LivEnrich</td>
 <td style="text-align: left;">Liver Enrichment</td>
 </tr>

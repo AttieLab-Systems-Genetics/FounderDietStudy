@@ -1,5 +1,5 @@
 This liver study has two diets (`HC_LF` = high carb, low fat; `HF_LC` =
-high fat, low carb) with three measurement sets collected on 192 mice:
+high fat, low carb) with 4 measurement sets collected on 192 mice:
 
 <table>
 <thead>

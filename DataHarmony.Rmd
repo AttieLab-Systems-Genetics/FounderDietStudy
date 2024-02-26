@@ -22,6 +22,7 @@ library(dplyr)
 library(tidyr)
 library(readxl)
 library(readr)
+library(stringr)
 library(foundr) # github/byandell/foundr
 ```
 
@@ -47,7 +48,7 @@ Condition name and normalize
 
 ```{r}
 condition_name <- "diet"
-normalize <- TRUE
+normalize <- FALSE
 ```
 
 ```{r}
@@ -73,35 +74,27 @@ harmonize("Physio", links, PhysioHarmony, condition_name = "diet",
           sheet = 2,
           rename_function = function(x) {
             rename(x, KetoneBodies = "KB_14wk")
-          })
+          },
+          normalize = normalize)
 ```
 
 ## PlaMet: Plasma metabolites
 
-These are data prepared by Mark using an Excel script.
+These are data hand-curated by Mark from data provided by Qiushi
+using an Excel script and saved as CSV.
 
 ```{r warning = FALSE}
 harmonize("PlaMet", links, EnrichHarmony, annot, skiprows = 4,
           condition_name = condition_name, normalize = normalize)
 ```
 
-## PlaMet0: Plasma metabolites
+Following are old versions not to be used now
 
-```{r warning = FALSE}
+```{r warning = FALSE, eval = FALSE}
 harmonize("PlaMet0", links, MetHarmony, annot, skiprows = 4,
           condition_name = condition_name, normalize = normalize)
-```
-
-## PlaMet120: Plasma metabolites at 120 minutes
-
-```{r warning = FALSE}
 harmonize("PlaMet120", links, MetHarmony, annot, skiprows = 3,
           condition_name = condition_name, normalize = normalize)
-```
-
-## PlaMetAll: Plasma metabolites at 120 minutes
-
-```{r warning = FALSE}
 harmonize("PlaMetAll", links, MetHarmony, annot, skiprows = 4,
           condition_name = condition_name, normalize = normalize)
 ```
@@ -120,7 +113,7 @@ do not need further normalization.
 
 ```{r warning = FALSE}
 harmonize("LivRna", links, LivRnaHarmony, annot,
-          condition_name = condition_name, normalize = FALSE)
+          condition_name = condition_name, normalize = normalize)
 ```
 
 ## Lipid: Liver Lipids
@@ -192,7 +185,7 @@ harmonize("LivEnrich", links, LivEnrichHarmony, annot,
 See <WGCNA.Rmd> for construction of `traitModule`.
 
 ```{r}
-traitModule <- readRDS(file.path("Normalized", "traitModule.rds"))
+traitModule <- readRDS(file.path("traitModule.rds"))
 ```
 
 ```{r}
@@ -206,7 +199,7 @@ harmonize("Module", links, foundr::moduleHarmony,
 Standard `FounderDietStudy`:
 
 ```{r}
-bind_traits(c("Physio","PlaMet0","PlaMet120","PlaMetAll","LivMet","Lipid","Module","Enrich","PlaEnrich","LivEnrich"))
+bind_traits(c("Physio","PlaMet","LivMet","Lipid","Module","Enrich","PlaEnrich","LivEnrich"))
 ```
 
 
