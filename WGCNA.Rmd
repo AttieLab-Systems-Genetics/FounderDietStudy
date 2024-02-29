@@ -44,8 +44,8 @@ library(modulr)
 ```
 
 ```{r}
-datasets <- c("Physio","LivMet","PlaMetAll","Lipid","LivRna","LivMet","PlaEnrich")
-pvalmax <- 0.05
+datasets <- c("Physio","LivMet","PlaMet","Lipid","LivMet","PlaEnrich","LivRna","LivIso")
+pvalmax <- 0.5
 ```
 
 # Contrasts
@@ -68,8 +68,8 @@ for(mod in c(datasets)) {
         dataset = mod),
       termname = "signal")
 }
+traitContrast <- dplyr::bind_rows(traitContrast, .id = "dataset")
 class(traitContrast) <- c("conditionContrasts", class(traitContrast))
-traitContrast <- c(traitContast)
 saveRDS(traitContrast, filename)
 ```
 
@@ -116,6 +116,10 @@ saveRDS(traitModule, filename)
 ```{r}
 summary(traitModule[["LivMet"]], "Both Sexes")
 ```
+```{r}
+PlaTraitModule <- traitModule[c("Physio","PlaMet","LivMet","Lipid","Module","Enrich","PlaEnrich","LivEnrich")]
+LivTraitModule <- traitModule[c("Physio","LivMet","Lipid","LivRna","LivIso","MixMod")]
+```
 
 # Eigentraits
 
@@ -143,8 +147,10 @@ for(mod in c(datasets)) {
   traitEigen[[mod]] <- foundr::eigen_contrast(traitModule[[mod]], 
     dplyr::filter(traitContrast, .data$dataset %in% mod))
 }
-saveRDS(traitModule, filename)
+saveRDS(traitEigen, filename)
 ```
+
+## Specific Examples worked out
 
 ```{r}
 LivMetEigen <- 

@@ -1,0 +1,119 @@
+---
+title: "Mixed Module Study"
+author: "Brian Yandell"
+date: "`r format(Sys.time(), '%d %B %Y')`"
+output: html_document
+params:
+  echo: no
+  rootdir: ~/founder_diet_study
+---
+
+Goal: Study mixed module
+
+Idea: Use shinyContrastModule as template, but with mixed WGCNA instead of contrast WGCNA.
+Can do same look at strain contrasts, and also use stats summaries.
+Make this a new panel for liver app.
+Modules will not be different by sex (M,F,B,C) but can do viz by those;
+that is, not 4 sets of WGCNA but 1.
+Other difference: mixed WGCNA includes multiple datasets;
+want to make sure those datasets are selected.
+
+Other change to app: customSetting for default stats (strain:diet, or strain if no diet/condition).
+
+# Setup
+
+```{r}
+rawdir <- file.path(params$rootdir, "RawData")
+(harmonizeddir <- file.path(params$rootdir, "HarmonizedData"))
+```
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+knitr::opts_knit$set(root.dir = harmonizeddir)
+```
+
+```{r}
+library(foundr)
+library(tidyverse)
+library(modulr)
+```
+
+## Annotation
+
+The experiment annotation file relates the `number` (identifier for `animal`) to the `sex` and `diet`. Needed for `LivRna`.
+
+```{r}
+annotfile <- file.path(params$rootdir, "RawData", "Annotation",
+                       "mouse annotations for founder diet study.xlsx")
+annot <- readxl::read_excel(annotfile) %>%
+  mutate(diet = ifelse(as.character(diet_no) == "200339", "HC_LF", "HF_LC"))
+```
+
+# Mark's WGCNA Mixed Module
+
+```{r}
+mod <- "MixMod"
+modparams <- list(
+        power = 12, 
+        signType = "unsigned",
+        minSize = 4)
+paramcode <- modparams
+if(is.null(paramcode$signType)) {
+  paramcode$signType <- "U"
+} else {
+  paramcode$signType <- ifelse(paramcode$signType == "unsigned", "U", "S")
+}
+paramcode <- paste(paramcode, collapse = "")
+filename <- file.path(mod, paste0(mod, "Module_", paramcode, ".rds"))
+```
+
+The object `mixbod` is returned from the call to `wgcna_harmonize()`.
+The side effect is to create directory `r mod` in the `harmonizeddir` with `RDS` file
+`r filename`.
+
+### *** need to get strain_sex_diet_animal into names of eigen
+
+```{r}
+if(file.exists(filename)) {
+  mixmod <- readRDS(filename)
+} else {
+  # This creates the object and saves as RDS.
+  moddir <- file.path(params$rootdir, "Primary data from Mark")
+  modRdata <- "WGCNA_objects_ms10_mixedmodules_isoforms_lipids_metabolites_founderliver.Rdata"
+  mixmod <- wgcna_harmonize(
+    mod,
+    moddir,
+    modRdata,
+    modparams,
+    annot,
+    harmonizeddir)
+}
+```
+
+```{r}
+filename <- "traitModule.rds"
+traitModule <- readRDS(filename)
+traitModule$MixMod <- mixmod
+saveRDS(traitModule, "traitModule.rds")
+```
+
+# Examine Modules
+
+```{r}
+summary(mixmod)
+```
+
+```{r}
+ggplot2::autoplot(mixmod)
+```
+
+
+```{r}
+MixModEigen <- 
+  
+```
+
+```{r}
+summary(LivMetEigen)
+```
+

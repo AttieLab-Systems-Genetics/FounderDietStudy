@@ -30,7 +30,7 @@ EnrichHarmony <- function(dataset, links, annot, ...) {
     rename(animal = "number",
            sex = "Sexes")
     
-  # Add diet column
+  # Add columns from annotation table.
   out <- left_join(
     # Some sexes have changed
     out |>

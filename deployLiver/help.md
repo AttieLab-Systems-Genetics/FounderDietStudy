@@ -1,5 +1,5 @@
 This liver study has two diets (`HC_LF` = high carb, low fat; `HF_LC` =
-high fat, low carb) with 4 measurement sets collected on 192 mice:
+high fat, low carb) with 5 measurement sets collected on 192 mice:
 
 <table>
 <thead>
@@ -24,6 +24,10 @@ high fat, low carb) with 4 measurement sets collected on 192 mice:
 <tr class="even">
 <td style="text-align: left;">Lipid</td>
 <td style="text-align: left;">Liver Lipids</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">LivIso</td>
+<td style="text-align: left;">Liver Isoforms</td>
 </tr>
 </tbody>
 </table>

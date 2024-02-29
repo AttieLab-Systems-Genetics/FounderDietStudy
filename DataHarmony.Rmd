@@ -70,7 +70,7 @@ annot <- read_excel(annotfile) %>%
 ## Physio: Physiological traits
 
 ```{r}
-harmonize("Physio", links, PhysioHarmony, condition_name = "diet",
+harmonize("Physio", links, PhysioHarmony, annot, condition_name = "diet",
           sheet = 2,
           rename_function = function(x) {
             rename(x, KetoneBodies = "KB_14wk")
@@ -113,6 +113,13 @@ do not need further normalization.
 
 ```{r warning = FALSE}
 harmonize("LivRna", links, LivRnaHarmony, annot,
+          condition_name = condition_name, normalize = normalize)
+```
+
+## LivIso: Liver mRNA isoform data
+
+```{r}
+harmonize("LivIso", links, LivRnaHarmony, annot, isoform = TRUE,
           condition_name = condition_name, normalize = normalize)
 ```
 
@@ -190,7 +197,13 @@ traitModule <- readRDS(file.path("traitModule.rds"))
 
 ```{r}
 harmonize("Module", links, foundr::moduleHarmony,
-          traitModule,
+          traitModule[!grepl("MixMod",names(traitModule))],
+          condition_name = condition_name, normalize = normalize)
+```
+
+```{r}
+harmonize("MixMod", links, foundr::moduleHarmony,
+          traitModule["MixMod"],
           condition_name = condition_name, normalize = normalize)
 ```
 
@@ -206,5 +219,5 @@ bind_traits(c("Physio","PlaMet","LivMet","Lipid","Module","Enrich","PlaEnrich","
 Special `FounderLiverDietStudy`:
 
 ```{r}
-bind_traits(c("Physio","LivMet","Lipid","LivRna"), traitRoot = "liver")
+bind_traits(c("Physio","LivMet","Lipid","LivRna","LivIso","MixMod"), traitRoot = "liver")
 ```

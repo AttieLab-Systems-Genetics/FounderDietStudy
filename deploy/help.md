@@ -1,5 +1,5 @@
 This study has two diets (`HC_LF` = high carb, low fat; `HF_LC` = high
-fat, low carb) with 6 measurement sets collected on 192 mice:
+fat, low carb) with 7 measurement sets collected on 192 mice:
 
 <table>
 <thead>
@@ -32,6 +32,10 @@ fat, low carb) with 6 measurement sets collected on 192 mice:
 <tr class="even">
 <td style="text-align: left;">LivEnrich</td>
 <td style="text-align: left;">Liver Enrichment</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">PlaMet</td>
+<td style="text-align: left;">Plasma Metabolites</td>
 </tr>
 </tbody>
 </table>

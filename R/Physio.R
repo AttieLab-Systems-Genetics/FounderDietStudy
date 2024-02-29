@@ -1,4 +1,4 @@
-PhysioHarmony <- function(dataset, links, sheet = 2, rename_function, ...) {
+PhysioHarmony <- function(dataset, links, annot, sheet = 2, rename_function, ...) {
   filename <- linkpath(dataset, links)
   
   # Read data and pivot to longer format; rename animal and condition.
@@ -11,12 +11,19 @@ PhysioHarmony <- function(dataset, links, sheet = 2, rename_function, ...) {
   
   out <- out |>
     # Traits begin in column 5
-    pivot_longer(-(1:4), names_to = "trait", values_to = "value") |>
-    
-    # Diets coded in file.
-    mutate(diet = ifelse(as.character(diet) == "200339",
-                         "HC_LF", "HF_LC")) |>
-    
+    pivot_longer(-(1:4), names_to = "trait", values_to = "value")
+  
+  
+  # Add columns from annotation table.
+  out <- left_join(
+    # Some sexes have changed
+    out |>
+      select(-sex, -diet),
+    annot |>
+      select(strain, number, sex, diet),
+    by = c("strain","number")) 
+  
+  out <- out |>
     # Rename columns to harmonize data.
     rename(condition = "diet",
            animal = "number") |>
