@@ -28,7 +28,8 @@ LivRnaHarmony <- function(dataset, links, annot, isoform = FALSE, ...) {
     by = c("strain", "number")) |>
     
     # Filter out minimum value, which is stand-in for missing value.
-    filter(value > min(value)) |> 
+    # Not doing this for now.
+#    filter(value > min(value)) |> 
     
     # Rename columns to harmonize.
     rename(animal = "number",

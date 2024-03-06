@@ -18,6 +18,12 @@ that is, not 4 sets of WGCNA but 1.
 Other difference: mixed WGCNA includes multiple datasets;
 want to make sure those datasets are selected.
 
+The Lipid data has been updated, and the names have been aligned. To do:
+
+- redeploy apps with updated Lipid data (traitX have been updated on RD)
+- modify trait names in MixMod (module element?) to align
+- fix up app.. and shiny.. to work with data
+
 Other change to app: customSetting for default stats (strain:diet, or strain if no diet/condition).
 
 # Setup
@@ -71,8 +77,6 @@ The object `mixbod` is returned from the call to `wgcna_harmonize()`.
 The side effect is to create directory `r mod` in the `harmonizeddir` with `RDS` file
 `r filename`.
 
-### *** need to get strain_sex_diet_animal into names of eigen
-
 ```{r}
 if(file.exists(filename)) {
   mixmod <- readRDS(filename)
@@ -80,7 +84,7 @@ if(file.exists(filename)) {
   # This creates the object and saves as RDS.
   moddir <- file.path(params$rootdir, "Primary data from Mark")
   modRdata <- "WGCNA_objects_ms10_mixedmodules_isoforms_lipids_metabolites_founderliver.Rdata"
-  mixmod <- wgcna_harmonize(
+  mixmod <- modulr::wgcna_harmonize(
     mod,
     moddir,
     modRdata,
@@ -90,27 +94,224 @@ if(file.exists(filename)) {
 }
 ```
 
+MixMod trait names, .
+
 ```{r}
+mixmodtraits <- 
+  # Remove ending trait ID.
+  str_remove(mixmod$value$modules$trait, "_[0-9]+$")
+mixmodLivIso <- str_detect(mixmodtraits, "^ENSMUST0")
+mixmodtraits <- mixmodtraits |>
+  # Rename isoforms from `ENSMUST0+nnn.aaa` to `aaa_nnn`.
+  str_replace("^ENSMUST0+([0-9]+)+\\.(.*)$", "\\2_\\1") |>
+  # If name starts with `_` then isoform name is unknown (`NA`).
+  str_replace("^_", "NA_")
+```
+
+```{r eval=FALSE}
 filename <- "traitModule.rds"
 traitModule <- readRDS(filename)
 traitModule$MixMod <- mixmod
 saveRDS(traitModule, "traitModule.rds")
 ```
 
-# Examine Modules
+See [WGCNA.Rmd](https://github.com/byandell/FounderDietStudy/blob/main/WGCNA.Rmd)
+for more detail on module objects used in
+[foundr](https://github.com/byandell/foundr) apps.
+
+## Examine Modules
 
 ```{r}
 summary(mixmod)
 ```
 
+Plot uses `modulr::ggplot_listof_wgcnaModules` through `autoplot` method.
+
 ```{r}
 ggplot2::autoplot(mixmod)
 ```
 
+## Traits Matchup
+
+Goal in this section is to match up trait names used by Mark and trait names from harmonized data used in apps. Some notes:
+
+- some traits removed due to
+  + too few (<6) strains with data
+  + any missing combination of strain*diet*sex
+  + possible other reasons not tracked down?
+- need for name wrangling due to special characters and Ensemble naming
+
+Traits ingested into Shiny app:
 
 ```{r}
-MixModEigen <- 
-  
+shinytraits <- distinct(readRDS("liverStats.rds"), dataset, trait)
+select(
+  pivot_wider(
+    count(shinytraits, dataset),
+    names_from = "dataset", values_from = "n"),
+  -MixMod, -LivRna)
+```
+
+### Lipids
+
+Lipid traits revised by Holland (with additional summaries):
+
+```{r}
+holland <- readxl::read_excel(file.path(params$rootdir, "Primary data from Mark",
+  "Founder liver lipid raw values from Holland used for mixed module calculation.xlsx"))
+```
+
+Number of new traits.
+
+```{r}
+LipidStats <- readRDS("Lipid/LipidStats.rds")
+Lnames <- unique(LipidStats$trait)
+```
+
+```{r}
+oldlipid <- filter(shinytraits, dataset == "Lipid")$trait
+lipid <- names(select(holland, -(mouse_id:Batch)))
+mlipid <- match(oldlipid, lipid, nomatch = 0)
+c(match = sum(mlipid > 0), new = length(lipid[-mlipid]), nomatch = sum(mlipid == 0))
+```
+
+Matches and no-matches.
+
+```{r}
+mlipid <- match(make.names(lipid, allow_ = FALSE), make.names(mixmodtraits), nomatch = 0)
+c(match = sum(mlipid > 0), nomatch = sum(mlipid == 0))
+lipid[mlipid == 0]
+```
+
+## Liver Metabolites
+
+```{r}
+livmet <- filter(shinytraits, dataset == "LivMet")$trait
+```
+
+```{r}
+mlivmet <- match(make.names(livmet, allow_ = FALSE), make.names(mixmodtraits), nomatch = 0)
+c(match = sum(mlivmet > 0), nomatch = sum(mlivmet == 0))
+```
+
+## Isoforms
+
+```{r}
+liviso <- filter(shinytraits, dataset == "LivIso")$trait
+mliviso <- match(make.names(mixmodtraits), make.names(liviso), nomatch = 0)
+nliviso <- match(make.names(liviso), make.names(mixmodtraits), nomatch = 0)
+c(LivIso = sum(mliviso > 0),
+  LivIso2 = sum(nliviso > 0),
+  NA_iso = sum(mliviso[mixmodLivIso] == 0),
+  NA_iso2 = sum(nliviso == 0))
+```
+
+Further checking of mismatch. For the `r sum(nliviso == 0)` isoforms that did not match exactly,
+none of their gene names or isoform IDs match. These will be excluded.
+
+```{r}
+c(gene = sum(is.na(match(str_remove(liviso[nliviso == 0], "_[0-9]+$"), 
+                mixmodtraits[mixmodLivIso]))),
+ID = sum(is.na(match(str_remove(liviso[nliviso == 0], "^.*_"), 
+                mixmodtraits[mixmodLivIso]))))
+```
+
+For the `r sum(mliviso[mixmodLivIso] == 0)` that are not included in the
+shiny app, most of them do not have sufficient data for the following reasons:
+
+- too few (<6) strains with data
+- any missing combination of strain*diet*sex
+- possible other reasons not tracked down?
+
+Below we characterize these dropped isoforms.
+
+```{r}
+missIso <- mixmodtraits[mixmodLivIso][mliviso[mixmodLivIso] == 0]
+# LivIso statistics for all traits
+LivIsoStats <- readRDS("~/Documents/Research/attie_alan/FounderDietStudy/data/LivIsoStats.rds")
+# Drop trait if missing p-value for any combination of `strain*diet*sex`
+dropTraits <- unique(
+  dplyr::filter(
+    # Ignore "noise" term as it has no p.value.
+    dplyr::filter(
+      LivIsoStats,
+      !(.data$term %in% c("noise", "rawSD"))),
+    is.na(.data$p.value))$trait)
+md <- match(missIso, dropTraits)
+md_na <- sum(is.na(md))
+c(dropped = length(dropTraits),
+  notmixmod = length(dropTraits) - length(md),
+  mixmoddrop = length(md) - md_na,
+  nostats = md_na)
+head(missIso[is.na(md)])
+```
+
+There were `r md_na` traits that were dropped before they got to the stats calculations.
+Let's look at those.
+
+```{r}
+LivIsoData <- readRDS("~/Documents/Research/attie_alan/FounderDietStudy/data/LivIsoData.rds")
+```
+
+```{r}
+LivIsoTraits <- LivIsoData |>
+  filter(trait %in% missIso[is.na(md)]) |>
+  distinct(trait, strain) |>
+  count(trait)
+LivIsoTraits |>
+  count(n, name = "nstrain") |>
+  pivot_wider(names_from = "n", values_from = "nstrain")
+```
+
+The `r sum(LivIsoTraits$n < 6)` that have fewer than 6 strains were dropped.
+That leaves the following `r md_na - sum(LivIsoTraits$n < 6)` traits:
+
+```{r}
+LivIsoTraits |>
+  filter(n >= 6) |>
+  arrange(n, trait)
+```
+
+These traits have 24 or more measurements and 6 or more strains.
+
+```{r}
+LivIsoData <- filter(LivIsoData, trait %in% filter(LivIsoTraits, n >= 6)$trait)
+stem((LivIsoData |>
+  count(trait))$n)
+```
+
+All of these traits only have females. They fail the model fit of `lm` due
+to failure in `model.matrix`. That is, we need 2 levels over every factor
+and factor combination to successfully run analysis. Here are the the
+counts by factors and factor combinations. The contrasts for `model.matrix`
+used by `lm` are even more stringent.
+
+```{r}
+ctfn <- function(x, factors) count(distinct(select(x, any_of(factors))))$n
+purfn <- function(x, factors) unlist(purrr::map(split(x, x$trait), ctfn, factors))
+data.frame(
+  # Single factors
+  strain = purfn(LivIsoData, c("strain")),
+  sex = purfn(LivIsoData, c("sex")),
+  diet = purfn(LivIsoData, c("condition")),
+  # Pairs of factors
+  strain_sex = purfn(LivIsoData, c("strain", "sex")),
+  strain_diet = purfn(LivIsoData, c("strain", "condition")),
+  sex_diet = purfn(LivIsoData, c("diet", "sex")),
+  strain_sex_diet = purfn(LivIsoData, c("strain", "sex", "condition")))
+```
+
+# Aligning Mixed Module and Traits
+
+Plan is to modify names in the Mixed Module to agree with trait data.
+Need also to incorporate Holland's new traits.
+
+```{r}
+liv
+```
+
+```{r}
+MixModEigen <- foundr::eigen_contrast(mixmod$value, )
 ```
 
 ```{r}

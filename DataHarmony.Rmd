@@ -123,18 +123,39 @@ harmonize("LivIso", links, LivRnaHarmony, annot, isoform = TRUE,
           condition_name = condition_name, normalize = normalize)
 ```
 
+Special situation: get stats for all data.
+
+```{r eval=FALSE}
+LivIsoStats <- harmonize("LivIso", links, LivRnaHarmony, annot, isoform = TRUE,
+          condition_name = condition_name, normalize = normalize,
+          drop_na_pvalue = FALSE)
+```
+
+```{r eval=FALSE}
+saveRDS(LivIsoStats, "~/Documents/Research/attie_alan/FounderDietStudy/data/LivIsoStats.rds")
+```
+
 ## Lipid: Liver Lipids
+
+```{r}
+harmonize("Lipid", links, LipidHarmony, annot,
+                sheetNum = 1  ,
+                skipNum = 0,
+                minCol=2,
+                maxCol=16,
+          condition_name = condition_name, normalize = normalize)
+```
 
 Note that `sampleKey` had 2 errors in it, which have been corrected. (B9-9 -> B6-9; 129-5 -> 129-15)
 
-```{r}
+```{r eval=FALSE}
 sampleKey <- read_excel("../Primary data from Mark/192 livers sample key.xlsx")
 sampleKey[sampleKey[1] == 60, 2] <- "B6-9"
 sampleKey[sampleKey[1] == 167, 2] <- "129-15"
 ```
 
-```{r}
-harmonize("Lipid", links, LipidHarmony, annot,
+```{r eval=FALSE}
+harmonize("OldLipid", links, OldLipidHarmony, annot,
                 sheetNum = 1  ,
                 skipNum = 1,
                 minCol=2,

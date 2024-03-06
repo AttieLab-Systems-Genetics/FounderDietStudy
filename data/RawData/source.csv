@@ -9,7 +9,8 @@ liver_annot,LivRna/varianceStabilizingTransformation/annotation2.csv,
 LivMet,LivMet/01Feb23_Founder_Livers_metabolomics_combined_unique_isobars_removed.xlsx,Liver metabolites
 Enrich,Enrich/Founder_plasma_timepoints_data_summary_Qiushi_shared.xlsx,Plasma enrichment over time
 Vivo,../Primary data from Mark/Final in vivo founder data for analysis (raw and computed).xlsx,In vivo Physiological Data
-Lipid,../Primary data from Mark/HollandW AtkinsonD 20230327 founder LIVER LIPIDS.xlsx,Liver Lipids
+Lipid,../Primary data from Mark/Founder liver lipid raw values from Holland used for mixed module calculation.xlsx,Liver Lipids
+OldLipid,../Primary data from Mark/HollandW AtkinsonD 20230327 founder LIVER LIPIDS.xlsx,Liver Lipids
 PlaEnrich,../Primary data from Mark/06202023_Founder_Plasma_All_Timepoints_13C_labels_Glc_Lac_Ala_Cit_Gln_Suc_Mal_QS.xlsx,Plasma Time Points
 PlaMetAll,../Primary data from Mark/08Aug23_Founder_Data_To_Wisconsin/01Aug23_Founder_Plasma_all_Timepoints_Metabolomics_combined_unique_isobars_removed_To_Wisconsin.xlsx,Plasma All Time Points
 LivEnrich,../Primary data from Mark/08Aug23_Founder_Data_To_Wisconsin/07Aug2023_Founder_Liver_D_labels_Enrichment_To_Wisconsin.xlsx,Liver Enrichment
