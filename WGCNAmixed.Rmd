@@ -18,10 +18,16 @@ that is, not 4 sets of WGCNA but 1.
 Other difference: mixed WGCNA includes multiple datasets;
 want to make sure those datasets are selected.
 
-The Lipid data has been updated, and the names have been aligned. To do:
+Done:
 
-- redeploy apps with updated Lipid data (traitX have been updated on RD)
-- modify trait names in MixMod (module element?) to align
+- Lipid data has been updated with Holland material.
+- traitX.rds files updated on ResearchDrive
+- `trait` names modified in MixMod$modules; added `dataset` column
+- MixMod added to `traitModule.rds`
+
+To Do:
+
+- redeploy both web apps with updated Lipid data
 - fix up app.. and shiny.. to work with data
 
 Other change to app: customSetting for default stats (strain:diet, or strain if no diet/condition).
@@ -97,9 +103,10 @@ if(file.exists(filename)) {
 MixMod trait names, .
 
 ```{r}
+MixModmodules <- mixmod$value$modules
 mixmodtraits <- 
   # Remove ending trait ID.
-  str_remove(mixmod$value$modules$trait, "_[0-9]+$")
+  str_remove(MixModmodules$trait, "_[0-9]+$")
 mixmodLivIso <- str_detect(mixmodtraits, "^ENSMUST0")
 mixmodtraits <- mixmodtraits |>
   # Rename isoforms from `ENSMUST0+nnn.aaa` to `aaa_nnn`.
@@ -108,16 +115,10 @@ mixmodtraits <- mixmodtraits |>
   str_replace("^_", "NA_")
 ```
 
-```{r eval=FALSE}
-filename <- "traitModule.rds"
-traitModule <- readRDS(filename)
-traitModule$MixMod <- mixmod
-saveRDS(traitModule, "traitModule.rds")
+```{r}
+MixModmodules$renameTrait <- mixmodtraits
+MixModmodules$dataset <- "Unknown"
 ```
-
-See [WGCNA.Rmd](https://github.com/byandell/FounderDietStudy/blob/main/WGCNA.Rmd)
-for more detail on module objects used in
-[foundr](https://github.com/byandell/foundr) apps.
 
 ## Examine Modules
 
@@ -144,7 +145,15 @@ Goal in this section is to match up trait names used by Mark and trait names fro
 Traits ingested into Shiny app:
 
 ```{r}
-shinytraits <- distinct(readRDS("liverStats.rds"), dataset, trait)
+if(file.exists(filename <- "liverTraits.rds")) {
+  shinytraits <- readRDS(filename)
+} else {
+  shinytraits <- distinct(readRDS("liverStats.rds"), dataset, trait)
+  saveRDS(shinytraits, filename)  
+}
+```
+
+```{r}
 select(
   pivot_wider(
     count(shinytraits, dataset),
@@ -154,25 +163,8 @@ select(
 
 ### Lipids
 
-Lipid traits revised by Holland (with additional summaries):
-
 ```{r}
-holland <- readxl::read_excel(file.path(params$rootdir, "Primary data from Mark",
-  "Founder liver lipid raw values from Holland used for mixed module calculation.xlsx"))
-```
-
-Number of new traits.
-
-```{r}
-LipidStats <- readRDS("Lipid/LipidStats.rds")
-Lnames <- unique(LipidStats$trait)
-```
-
-```{r}
-oldlipid <- filter(shinytraits, dataset == "Lipid")$trait
-lipid <- names(select(holland, -(mouse_id:Batch)))
-mlipid <- match(oldlipid, lipid, nomatch = 0)
-c(match = sum(mlipid > 0), new = length(lipid[-mlipid]), nomatch = sum(mlipid == 0))
+lipid <- filter(shinytraits, dataset == "Lipid")$trait
 ```
 
 Matches and no-matches.
@@ -180,7 +172,11 @@ Matches and no-matches.
 ```{r}
 mlipid <- match(make.names(lipid, allow_ = FALSE), make.names(mixmodtraits), nomatch = 0)
 c(match = sum(mlipid > 0), nomatch = sum(mlipid == 0))
-lipid[mlipid == 0]
+```
+
+```{r}
+MixModmodules$renameTrait[mlipid] <- lipid
+MixModmodules$dataset[mlipid] <- "Lipid"
 ```
 
 ## Liver Metabolites
@@ -194,29 +190,94 @@ mlivmet <- match(make.names(livmet, allow_ = FALSE), make.names(mixmodtraits), n
 c(match = sum(mlivmet > 0), nomatch = sum(mlivmet == 0))
 ```
 
+```{r}
+MixModmodules$renameTrait[mlivmet] <- livmet
+MixModmodules$dataset[mlivmet] <- "LivMet"
+```
+
 ## Isoforms
 
 ```{r}
 liviso <- filter(shinytraits, dataset == "LivIso")$trait
-mliviso <- match(make.names(mixmodtraits), make.names(liviso), nomatch = 0)
-nliviso <- match(make.names(liviso), make.names(mixmodtraits), nomatch = 0)
-c(LivIso = sum(mliviso > 0),
-  LivIso2 = sum(nliviso > 0),
-  NA_iso = sum(mliviso[mixmodLivIso] == 0),
-  NA_iso2 = sum(nliviso == 0))
+mliviso <- match(make.names(liviso), make.names(mixmodtraits), nomatch = 0)
+nliviso <- match(make.names(mixmodtraits), make.names(liviso), nomatch = 0)
+(ct <- c(LivIso = sum(nliviso > 0),
+  LivIso2 = sum(mliviso > 0),
+  NA_iso = sum(nliviso[mixmodLivIso] == 0),
+  NA_iso2 = sum(mliviso == 0)))
 ```
 
-Further checking of mismatch. For the `r sum(nliviso == 0)` isoforms that did not match exactly,
+The `r ct["NA_iso"]` `NA_iso` are in the MixMod module but not in the `shinytraits`.
+These did not make the cut.
+
+```{r}
+MixModmodules$renameTrait[mliviso] <- liviso
+MixModmodules$dataset[mliviso] <- "LivIso"
+MixModmodules$dataset[mixmodLivIso][nliviso[mixmodLivIso] == 0] <- "LivIsoDrop"
+```
+
+Apparently `PI.total`, the remaining "Unknown" is a Lipid trait that was derived after coming from Holland.
+It is not in the Holland dataset.
+
+```{r}
+MixModmodules <- mutate(MixModmodules,
+                        dataset = ifelse(dataset == "Unknown",
+                                         "LipidDrop", dataset))
+```
+
+```{r}
+table(MixModmodules$dataset)
+```
+
+# Aligning Mixed Module and Traits
+
+Plan is to modify names in the Mixed Module `mixmod$modules` to agree with trait data. Note that with trait as "dataset: trait", some modification of routines
+will be necessary.
+
+```{r}
+mixmod$modules <-
+  MixModmodules |>
+  mutate(
+    trait = ifelse(dataset %in% c("LipidDrop","LivIsoDrop"),
+                   NA, renameTrait),
+    dataset = ifelse(dataset %in% c("LipidDrop","LivIsoDrop"),
+                   NA, dataset)) |>
+  select(dataset, trait, module, kME)
+```
+
+```{r eval=FALSE}
+filename <- "traitModule.rds"
+traitModule <- readRDS(filename)
+traitModule$MixMod <- mixmod
+saveRDS(traitModule, "traitModule.rds")
+```
+
+See [WGCNA.Rmd](https://github.com/byandell/FounderDietStudy/blob/main/WGCNA.Rmd)
+for more detail on module objects used in
+[foundr](https://github.com/byandell/foundr) apps.
+
+
+```{r}
+knitr::knit_exit()
+```
+
+## Further checking of Liver Isoforms
+
+This is not pursued further, but provided justification of the dropped isoforms.
+Basically, these did not have sufficient data to estimate stats. For some,
+there were only female entries. Some of this code may not work at this point.
+
+Further checking of mismatch. For the `r sum(mliviso == 0)` isoforms that did not match exactly,
 none of their gene names or isoform IDs match. These will be excluded.
 
 ```{r}
-c(gene = sum(is.na(match(str_remove(liviso[nliviso == 0], "_[0-9]+$"), 
-                mixmodtraits[mixmodLivIso]))),
-ID = sum(is.na(match(str_remove(liviso[nliviso == 0], "^.*_"), 
-                mixmodtraits[mixmodLivIso]))))
+c(gene = sum(is.na(match(str_remove(liviso[mliviso == 0], "_[0-9]+$"), 
+                         mixmodtraits[mixmodLivIso]))),
+  ID = sum(is.na(match(str_remove(liviso[mliviso == 0], "^.*_"), 
+                       mixmodtraits[mixmodLivIso]))))
 ```
 
-For the `r sum(mliviso[mixmodLivIso] == 0)` that are not included in the
+For the `r sum(nliviso[mixmodLivIso] == 0)` that are not included in the
 shiny app, most of them do not have sufficient data for the following reasons:
 
 - too few (<6) strains with data
@@ -226,7 +287,7 @@ shiny app, most of them do not have sufficient data for the following reasons:
 Below we characterize these dropped isoforms.
 
 ```{r}
-missIso <- mixmodtraits[mixmodLivIso][mliviso[mixmodLivIso] == 0]
+missIso <- mixmodtraits[mixmodLivIso][nliviso[mixmodLivIso] == 0]
 # LivIso statistics for all traits
 LivIsoStats <- readRDS("~/Documents/Research/attie_alan/FounderDietStudy/data/LivIsoStats.rds")
 # Drop trait if missing p-value for any combination of `strain*diet*sex`
@@ -300,11 +361,6 @@ data.frame(
   sex_diet = purfn(LivIsoData, c("diet", "sex")),
   strain_sex_diet = purfn(LivIsoData, c("strain", "sex", "condition")))
 ```
-
-# Aligning Mixed Module and Traits
-
-Plan is to modify names in the Mixed Module to agree with trait data.
-Need also to incorporate Holland's new traits.
 
 ```{r}
 liv
