@@ -23,10 +23,17 @@ Done:
 - Lipid data has been updated with Holland material.
 - traitX.rds files updated on ResearchDrive
 - `trait` names modified in MixMod$modules; added `dataset` column
+- *** need to add column for missing, and keep names of `trait` and `dataset`
 - MixMod added to `traitModule.rds`
+- plot of Stats for module working in Stats panel
+- contrasts computed for eigens as `MixModCond` below
+- traits for module identified below
 
 To Do:
 
+- plot of Contrasts for modules and for traits within modules
+- add % dropped as characteristic of module
+- other summaries (including min `p.value` for `term` within module)
 - redeploy both web apps with updated Lipid data
 - fix up app.. and shiny.. to work with data
 
@@ -97,6 +104,7 @@ if(file.exists(filename)) {
     modparams,
     annot,
     harmonizeddir)
+  saveRDS(mixmod, filename)
 }
 ```
 
@@ -231,31 +239,200 @@ table(MixModmodules$dataset)
 
 # Aligning Mixed Module and Traits
 
-Plan is to modify names in the Mixed Module `mixmod$modules` to agree with trait data. Note that with trait as "dataset: trait", some modification of routines
+Plan is to modify names in the Mixed Module `mixmod$value$modules` to agree with trait data. Note that with trait as "dataset: trait", some modification of routines
 will be necessary.
 
 ```{r}
-mixmod$modules <-
+mixmod$value$modules <-
   MixModmodules |>
   mutate(
-    trait = ifelse(dataset %in% c("LipidDrop","LivIsoDrop"),
-                   NA, renameTrait),
-    dataset = ifelse(dataset %in% c("LipidDrop","LivIsoDrop"),
-                   NA, dataset)) |>
-  select(dataset, trait, module, kME)
+    trait = renameTrait,
+    dropped = (dataset %in% c("LipidDrop","LivIsoDrop")),
+    dataset = ifelse(dropped,
+                   str_remove(dataset, "Drop"), dataset)) |>
+  select(dataset, trait, module, kME, dropped)
+```
+
+```{r}
+filename <- "traitModule.rds"
+traitModule <- readRDS(filename)
 ```
 
 ```{r eval=FALSE}
-filename <- "traitModule.rds"
-traitModule <- readRDS(filename)
 traitModule$MixMod <- mixmod
 saveRDS(traitModule, "traitModule.rds")
+```
+
+```{r}
+traitModule$MixMod$value$modules |> filter(dropped) |> arrange(dataset)
+```
+
+Redo `MixMod` files on ResearchDrive.
+
+```{r eval=FALSE}
+links <- read.csv(file.path("..", "RawData", "source.csv"), fill = TRUE) %>%
+  mutate(address = file.path(rawdir, address))
+harmonize("MixMod", links, foundr::moduleHarmony,
+          traitModule["MixMod"],
+          condition_name = "diet", normalize = FALSE)
 ```
 
 See [WGCNA.Rmd](https://github.com/byandell/FounderDietStudy/blob/main/WGCNA.Rmd)
 for more detail on module objects used in
 [foundr](https://github.com/byandell/foundr) apps.
 
+# Module Eigenvalues
+
+```{r}
+MixModSignal <- readRDS(file.path("MixMod", "MixModSignal.rds")) |>
+  mutate(dataset = "MixMod")
+MixModStats <- readRDS(file.path("MixMod", "MixModStats.rds")) |>
+  mutate(dataset = "MixMod")
+```
+
+```{r}
+MixModCond <- conditionContrasts(MixModSignal, MixModStats, 
+        termname = "strain:diet", rawStats = MixModStats)
+```
+
+It seems that `eigen_df` is the killer here, depending on
+a particular form for rownames that is not adhered to.
+Will take some rethinking.
+
+Right now, `eigen_df` is set up for `c("dataset", "strain", "sex")`,
+which is fine for contrasts. It needs to be set up for
+`c("strain","sex","condition","animal")`
+with special handling of `_` in condition.
+This is done in another routine.
+
+Also, do not want to paste `sexes` and `module` to expand `module`.
+
+Goal is to have object from eigen_contrast with columns
+"dataset" "strain"  "sex"     "module"  "value"   "kME"     "p.value" "size"    "trait"
+Only have a subset of these to begin; others come from `module_info().
+Look at what is done for contrast.
+may need a whole new routine for imported modules.
+Rather than having modules constructed by sex, they are constructed across datasets.
+So need to capture dataset and not repeat on sex.
+
+Maybe this is not what we want. We have the `eigens` in MixModCond
+across the contrasts. What we want to do is match up these with
+MixModSignal and get stats from MixModStats for the eigens.
+For the traits, we want to use `modules` to match up `dataset` and `trait`
+from traitCond with the module.
+
+```{r}
+MixModStats |> count(trait) |> count(n, name = "samples")
+```
+
+```{r}
+MixModSignal |> count(trait) |> count(n, name = "samples")
+```
+
+```{r}
+MixModCond |> count(trait) |> count(n, name = "samples")
+```
+
+```{r}
+names(MixModStats)
+names(MixModSignal)
+names(MixModCond)
+```
+
+```{r}
+MixModCond
+```
+
+The `eigen_contrast` left-joins the 
+
+```{r}
+MixModInfo <-
+    dplyr::ungroup(
+      dplyr::summarize(
+        dplyr::group_by(
+          mixmod$value$modules,
+          .data$module),
+        kME = signif(max(abs(kME), na.rm = TRUE), 4),
+#        p.value = signif(min(p.value, na.rm = TRUE), 4),
+        size = dplyr::n(),
+        .groups = "drop"))
+MixModInfo
+```
+
+```{r}
+(object <- 
+    dplyr::mutate(
+      dplyr::left_join(
+        dplyr::rename(MixModCond, module = "trait"),
+        # Get information by module.
+        MixModInfo,
+        by = "module"),
+      trait = factor(.data$module, unique(.data$module)),
+      module = match(.data$trait, levels(.data$trait))))
+```
+
+
+```{r}
+MixModEigen <- foundr:::eigen_contrast_dataset(
+  traitModule["MixMod"], MixModCond)
+```
+
+# Traits in Modules
+
+```{r}
+MixDataTraits <- unite(mixmod$value$modules |> filter(!dropped), 
+                       datatrait, dataset, trait, sep = ": ")
+```
+
+```{r}
+traitStats <- readRDS("liverStats.rds") |>
+  unite(datatrait, dataset, trait, sep = ": ", remove = FALSE) |>
+  filter(datatrait %in% MixDataTraits$datatrait) |>
+  select(-datatrait)
+```
+
+```{r}
+table(distinct(traitStats, dataset, trait)$dataset)
+```
+
+Pick out traits for module `thistle4`
+
+```{r}
+readRDS("liverStats.rds") |>
+  unite(datatrait, dataset, trait, sep = ": ", remove = FALSE) |>
+  filter(datatrait %in%
+           filter(MixDataTraits, module == "thistle4")$datatrait) |>
+  select(-datatrait) %>%
+  filter(term == "strain:diet")
+```
+
+# Modules as Traits
+
+```{r}
+PhysioSignal <- readRDS(file.path("Physio", "PhysioSignal.rds")) |>
+  mutate(dataset = "Physio")
+PhysioStats <- readRDS(file.path("Physio", "PhysioStats.rds")) |>
+  mutate(dataset = "Physio")
+```
+
+```{r}
+traitModule$Physio$Female$modules
+```
+
+```{r}
+PhysioCond <- conditionContrasts(PhysioSignal, PhysioStats, 
+        termname = "strain:diet", rawStats = PhysioStats)
+PhysioEigen <- foundr:::eigen_contrast_dataset(
+  traitModule["Physio"], PhysioCond)
+```
+
+```{r}
+PhysioCond
+```
+
+```{r}
+PhysioEigen
+```
 
 ```{r}
 knitr::knit_exit()

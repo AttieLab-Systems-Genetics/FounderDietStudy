@@ -50,7 +50,7 @@ Condition name and normalize
 condition_name <- "diet"
 normalize <- FALSE
 ```
-
+ 
 ```{r}
 links <- read.csv(file.path("..", "RawData", "source.csv"), fill = TRUE) %>%
   mutate(address = file.path(rawdir, address))
@@ -66,6 +66,8 @@ excel_sheets(annotfile)
 annot <- read_excel(annotfile) %>%
   mutate(diet = ifelse(as.character(diet_no) == "200339", "HC_LF", "HF_LC"))
 ```
+
+# Datasets
 
 ## Physio: Physiological traits
 
@@ -191,7 +193,6 @@ harmonize("Enrich", links, EnrichHarmony, annot,
 ```
   
 ```{r}
-dir()
 harmonize("PlaEnrich", links, Enrich3Harmony, annot,
           condition_name = condition_name, normalize = normalize)
 ```
@@ -210,7 +211,7 @@ harmonize("LivEnrich", links, LivEnrichHarmony, annot,
 
 ## Module: WGCNA module eigentraits
 
-See <WGCNA.Rmd> for construction of `traitModule`.
+See <WGCNA.Rmd> and <WGCNAmixed.Rmd> for construction of `traitModule`.
 
 ```{r}
 traitModule <- readRDS(file.path("traitModule.rds"))

@@ -27,10 +27,13 @@ Enrich3Harmony <- function(dataset, links, annot, ...) {
   
   # Add enrichment traits Mn
   out <- out %>%
-    group_by(strain, sex, animal, condition, trait) %>%
+    mutate(traitgp = str_remove(trait, "_C[0-9A-Z]+$")) %>%
+    group_by(strain, sex, animal, condition, minute, traitgp) %>%
     mutate(mvalue = value / sum(value),
-           minute = minute) %>%
+           minute = minute,
+           trait = trait) %>%
     ungroup() %>%
+    select(-traitgp) %>%
     select(value, mvalue, everything()) %>%
     pivot_longer(value:mvalue, names_to = "enrich", values_to = "value") %>%
     mutate(trait = ifelse(enrich == "mvalue",
