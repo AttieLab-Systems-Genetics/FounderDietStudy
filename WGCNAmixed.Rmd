@@ -28,11 +28,13 @@ Done:
 - plot of Stats for module working in Stats panel
 - contrasts computed for eigens as `MixModCond` below
 - traits for module identified below
+- add % dropped as characteristic of module
+
+** Not sure how `term` is incorporated or which `p.value` to choose. **
 
 To Do:
 
 - plot of Contrasts for modules and for traits within modules
-- add % dropped as characteristic of module
 - other summaries (including min `p.value` for `term` within module)
 - redeploy both web apps with updated Lipid data
 - fix up app.. and shiny.. to work with data
@@ -57,231 +59,20 @@ library(tidyverse)
 library(modulr)
 ```
 
-## Annotation
-
-The experiment annotation file relates the `number` (identifier for `animal`) to the `sex` and `diet`. Needed for `LivRna`.
-
-```{r}
-annotfile <- file.path(params$rootdir, "RawData", "Annotation",
-                       "mouse annotations for founder diet study.xlsx")
-annot <- readxl::read_excel(annotfile) %>%
-  mutate(diet = ifelse(as.character(diet_no) == "200339", "HC_LF", "HF_LC"))
-```
-
-# Mark's WGCNA Mixed Module
-
-```{r}
-mod <- "MixMod"
-modparams <- list(
-        power = 12, 
-        signType = "unsigned",
-        minSize = 4)
-paramcode <- modparams
-if(is.null(paramcode$signType)) {
-  paramcode$signType <- "U"
-} else {
-  paramcode$signType <- ifelse(paramcode$signType == "unsigned", "U", "S")
-}
-paramcode <- paste(paramcode, collapse = "")
-filename <- file.path(mod, paste0(mod, "Module_", paramcode, ".rds"))
-```
-
-The object `mixbod` is returned from the call to `wgcna_harmonize()`.
-The side effect is to create directory `r mod` in the `harmonizeddir` with `RDS` file
-`r filename`.
-
-```{r}
-if(file.exists(filename)) {
-  mixmod <- readRDS(filename)
-} else {
-  # This creates the object and saves as RDS.
-  moddir <- file.path(params$rootdir, "Primary data from Mark")
-  modRdata <- "WGCNA_objects_ms10_mixedmodules_isoforms_lipids_metabolites_founderliver.Rdata"
-  mixmod <- modulr::wgcna_harmonize(
-    mod,
-    moddir,
-    modRdata,
-    modparams,
-    annot,
-    harmonizeddir)
-  saveRDS(mixmod, filename)
-}
-```
-
-MixMod trait names, .
-
-```{r}
-MixModmodules <- mixmod$value$modules
-mixmodtraits <- 
-  # Remove ending trait ID.
-  str_remove(MixModmodules$trait, "_[0-9]+$")
-mixmodLivIso <- str_detect(mixmodtraits, "^ENSMUST0")
-mixmodtraits <- mixmodtraits |>
-  # Rename isoforms from `ENSMUST0+nnn.aaa` to `aaa_nnn`.
-  str_replace("^ENSMUST0+([0-9]+)+\\.(.*)$", "\\2_\\1") |>
-  # If name starts with `_` then isoform name is unknown (`NA`).
-  str_replace("^_", "NA_")
-```
-
-```{r}
-MixModmodules$renameTrait <- mixmodtraits
-MixModmodules$dataset <- "Unknown"
-```
-
-## Examine Modules
-
-```{r}
-summary(mixmod)
-```
-
-Plot uses `modulr::ggplot_listof_wgcnaModules` through `autoplot` method.
-
-```{r}
-ggplot2::autoplot(mixmod)
-```
-
-## Traits Matchup
-
-Goal in this section is to match up trait names used by Mark and trait names from harmonized data used in apps. Some notes:
-
-- some traits removed due to
-  + too few (<6) strains with data
-  + any missing combination of strain*diet*sex
-  + possible other reasons not tracked down?
-- need for name wrangling due to special characters and Ensemble naming
-
-Traits ingested into Shiny app:
-
-```{r}
-if(file.exists(filename <- "liverTraits.rds")) {
-  shinytraits <- readRDS(filename)
-} else {
-  shinytraits <- distinct(readRDS("liverStats.rds"), dataset, trait)
-  saveRDS(shinytraits, filename)  
-}
-```
-
-```{r}
-select(
-  pivot_wider(
-    count(shinytraits, dataset),
-    names_from = "dataset", values_from = "n"),
-  -MixMod, -LivRna)
-```
-
-### Lipids
-
-```{r}
-lipid <- filter(shinytraits, dataset == "Lipid")$trait
-```
-
-Matches and no-matches.
-
-```{r}
-mlipid <- match(make.names(lipid, allow_ = FALSE), make.names(mixmodtraits), nomatch = 0)
-c(match = sum(mlipid > 0), nomatch = sum(mlipid == 0))
-```
-
-```{r}
-MixModmodules$renameTrait[mlipid] <- lipid
-MixModmodules$dataset[mlipid] <- "Lipid"
-```
-
-## Liver Metabolites
-
-```{r}
-livmet <- filter(shinytraits, dataset == "LivMet")$trait
-```
-
-```{r}
-mlivmet <- match(make.names(livmet, allow_ = FALSE), make.names(mixmodtraits), nomatch = 0)
-c(match = sum(mlivmet > 0), nomatch = sum(mlivmet == 0))
-```
-
-```{r}
-MixModmodules$renameTrait[mlivmet] <- livmet
-MixModmodules$dataset[mlivmet] <- "LivMet"
-```
-
-## Isoforms
-
-```{r}
-liviso <- filter(shinytraits, dataset == "LivIso")$trait
-mliviso <- match(make.names(liviso), make.names(mixmodtraits), nomatch = 0)
-nliviso <- match(make.names(mixmodtraits), make.names(liviso), nomatch = 0)
-(ct <- c(LivIso = sum(nliviso > 0),
-  LivIso2 = sum(mliviso > 0),
-  NA_iso = sum(nliviso[mixmodLivIso] == 0),
-  NA_iso2 = sum(mliviso == 0)))
-```
-
-The `r ct["NA_iso"]` `NA_iso` are in the MixMod module but not in the `shinytraits`.
-These did not make the cut.
-
-```{r}
-MixModmodules$renameTrait[mliviso] <- liviso
-MixModmodules$dataset[mliviso] <- "LivIso"
-MixModmodules$dataset[mixmodLivIso][nliviso[mixmodLivIso] == 0] <- "LivIsoDrop"
-```
-
-Apparently `PI.total`, the remaining "Unknown" is a Lipid trait that was derived after coming from Holland.
-It is not in the Holland dataset.
-
-```{r}
-MixModmodules <- mutate(MixModmodules,
-                        dataset = ifelse(dataset == "Unknown",
-                                         "LipidDrop", dataset))
-```
-
-```{r}
-table(MixModmodules$dataset)
-```
-
-# Aligning Mixed Module and Traits
-
-Plan is to modify names in the Mixed Module `mixmod$value$modules` to agree with trait data. Note that with trait as "dataset: trait", some modification of routines
-will be necessary.
-
-```{r}
-mixmod$value$modules <-
-  MixModmodules |>
-  mutate(
-    trait = renameTrait,
-    dropped = (dataset %in% c("LipidDrop","LivIsoDrop")),
-    dataset = ifelse(dropped,
-                   str_remove(dataset, "Drop"), dataset)) |>
-  select(dataset, trait, module, kME, dropped)
-```
-
 ```{r}
 filename <- "traitModule.rds"
 traitModule <- readRDS(filename)
 ```
 
-```{r eval=FALSE}
-traitModule$MixMod <- mixmod
-saveRDS(traitModule, "traitModule.rds")
+```{r}
+mixmod <- traitModule$MixMod
 ```
+
+# Module Eigenvalues
 
 ```{r}
 traitModule$MixMod$value$modules |> filter(dropped) |> arrange(dataset)
 ```
-
-Redo `MixMod` files on ResearchDrive.
-
-```{r eval=FALSE}
-links <- read.csv(file.path("..", "RawData", "source.csv"), fill = TRUE) %>%
-  mutate(address = file.path(rawdir, address))
-harmonize("MixMod", links, foundr::moduleHarmony,
-          traitModule["MixMod"],
-          condition_name = "diet", normalize = FALSE)
-```
-
-See [WGCNA.Rmd](https://github.com/byandell/FounderDietStudy/blob/main/WGCNA.Rmd)
-for more detail on module objects used in
-[foundr](https://github.com/byandell/foundr) apps.
-
-# Module Eigenvalues
 
 ```{r}
 MixModSignal <- readRDS(file.path("MixMod", "MixModSignal.rds")) |>
@@ -322,25 +113,44 @@ For the traits, we want to use `modules` to match up `dataset` and `trait`
 from traitCond with the module.
 
 ```{r}
-MixModStats |> count(trait) |> count(n, name = "samples")
+data.frame(
+  Stats = MixModStats |> count(trait) |> count(n, name = "samples"),
+  Signal = MixModSignal |> count(trait) |> count(n, name = "samples"),
+  Cond = MixModCond |> count(trait) |> count(n, name = "samples"))
 ```
 
 ```{r}
-MixModSignal |> count(trait) |> count(n, name = "samples")
-```
-
-```{r}
-MixModCond |> count(trait) |> count(n, name = "samples")
-```
-
-```{r}
-names(MixModStats)
-names(MixModSignal)
-names(MixModCond)
+list(
+  Stats = names(MixModStats),
+  Signal = names(MixModSignal),
+  Cond = names(MixModCond))
 ```
 
 ```{r}
 MixModCond
+```
+
+```{r}
+ggplot_conditionContrasts(
+        MixModCond, bysex = "Both Sexes",
+        ordername = "p.value",
+        plottype = "volcano")
+```
+
+```{r}
+ggplot_conditionContrasts(
+        MixModCond, bysex = "Both Sexes",
+        ordername = "p.value",
+        threshold = list(p.value = 0.05),
+        plottype = "dotplot")
+```
+
+```{r}
+ggplot_conditionContrasts(
+        MixModCond, bysex = "Both Sexes",
+        ordername = "p.value",
+        threshold = list(p.value = 0.05),
+        plottype = "biplot")
 ```
 
 The `eigen_contrast` left-joins the 
@@ -355,12 +165,13 @@ MixModInfo <-
         kME = signif(max(abs(kME), na.rm = TRUE), 4),
 #        p.value = signif(min(p.value, na.rm = TRUE), 4),
         size = dplyr::n(),
+        drop = sum(dropped) / size,
         .groups = "drop"))
 MixModInfo
 ```
 
 ```{r}
-(object <- 
+(MixModEigen <- 
     dplyr::mutate(
       dplyr::left_join(
         dplyr::rename(MixModCond, module = "trait"),
@@ -372,7 +183,7 @@ MixModInfo
 ```
 
 
-```{r}
+```{r eval=FALSE}
 MixModEigen <- foundr:::eigen_contrast_dataset(
   traitModule["MixMod"], MixModCond)
 ```
@@ -380,7 +191,7 @@ MixModEigen <- foundr:::eigen_contrast_dataset(
 # Traits in Modules
 
 ```{r}
-MixDataTraits <- unite(mixmod$value$modules |> filter(!dropped), 
+MixDataTraits <- unite(filter(mixmod$value$modules, !dropped),
                        datatrait, dataset, trait, sep = ": ")
 ```
 
@@ -392,18 +203,67 @@ traitStats <- readRDS("liverStats.rds") |>
 ```
 
 ```{r}
-table(distinct(traitStats, dataset, trait)$dataset)
+pivot_wider(count(
+  left_join(
+    distinct(traitStats, dataset, trait),
+    MixDataTraits,
+    by = dataset, trait),
+  mutate(dropped = ifelse(dropped, "Drop", "Keep")),
+  dataset, dropped),
+  names_from = "dropped", values_from = "n")
 ```
 
 Pick out traits for module `thistle4`
+
+**Need to add module as initial trait.**
+
+```{r}
+module_id <- "thistle4"
+```
 
 ```{r}
 readRDS("liverStats.rds") |>
   unite(datatrait, dataset, trait, sep = ": ", remove = FALSE) |>
   filter(datatrait %in%
-           filter(MixDataTraits, module == "thistle4")$datatrait) |>
-  select(-datatrait) %>%
-  filter(term == "strain:diet")
+           filter(MixDataTraits, module == module_id)$datatrait) |>
+  filter(term == "strain:diet") |>
+  select(-term, -SD) |>
+  left_join(
+    MixDataTraits,
+    by = "datatrait") |>
+  select(-datatrait) |>
+  arrange(p.value) 
+```
+
+** Not sure if following is right. We want contrasts for traits in module.
+want to run conditionContrasts on Signal and Stats from module. **
+
+```{r}
+MixModCond <- conditionContrasts(MixModSignal, MixModStats, 
+        termname = "strain:diet", rawStats = MixModStats)
+```
+
+
+
+```{r}
+readRDS("liverSignal.rds") |>
+  unite(datatrait, dataset, trait, sep = ": ", remove = FALSE) |>
+  filter(datatrait %in%
+           filter(MixDataTraits, module == module_id)$datatrait) |>
+  left_join(
+    MixDataTraits,
+    by = "datatrait") |>
+  select(-datatrait) |>
+  arrange(p.value) 
+```
+
+```{r}
+MixModCond |>
+  filter(trait == module_id)
+```
+
+```{r}
+MixModEigen |> filter(trait == module_id)
 ```
 
 # Modules as Traits
@@ -435,119 +295,24 @@ PhysioEigen
 ```
 
 ```{r}
-knitr::knit_exit()
-```
-
-## Further checking of Liver Isoforms
-
-This is not pursued further, but provided justification of the dropped isoforms.
-Basically, these did not have sufficient data to estimate stats. For some,
-there were only female entries. Some of this code may not work at this point.
-
-Further checking of mismatch. For the `r sum(mliviso == 0)` isoforms that did not match exactly,
-none of their gene names or isoform IDs match. These will be excluded.
-
-```{r}
-c(gene = sum(is.na(match(str_remove(liviso[mliviso == 0], "_[0-9]+$"), 
-                         mixmodtraits[mixmodLivIso]))),
-  ID = sum(is.na(match(str_remove(liviso[mliviso == 0], "^.*_"), 
-                       mixmodtraits[mixmodLivIso]))))
-```
-
-For the `r sum(nliviso[mixmodLivIso] == 0)` that are not included in the
-shiny app, most of them do not have sufficient data for the following reasons:
-
-- too few (<6) strains with data
-- any missing combination of strain*diet*sex
-- possible other reasons not tracked down?
-
-Below we characterize these dropped isoforms.
-
-```{r}
-missIso <- mixmodtraits[mixmodLivIso][nliviso[mixmodLivIso] == 0]
-# LivIso statistics for all traits
-LivIsoStats <- readRDS("~/Documents/Research/attie_alan/FounderDietStudy/data/LivIsoStats.rds")
-# Drop trait if missing p-value for any combination of `strain*diet*sex`
-dropTraits <- unique(
-  dplyr::filter(
-    # Ignore "noise" term as it has no p.value.
-    dplyr::filter(
-      LivIsoStats,
-      !(.data$term %in% c("noise", "rawSD"))),
-    is.na(.data$p.value))$trait)
-md <- match(missIso, dropTraits)
-md_na <- sum(is.na(md))
-c(dropped = length(dropTraits),
-  notmixmod = length(dropTraits) - length(md),
-  mixmoddrop = length(md) - md_na,
-  nostats = md_na)
-head(missIso[is.na(md)])
-```
-
-There were `r md_na` traits that were dropped before they got to the stats calculations.
-Let's look at those.
-
-```{r}
-LivIsoData <- readRDS("~/Documents/Research/attie_alan/FounderDietStudy/data/LivIsoData.rds")
+PhysioDatatraits <- tidyr::unite(PhysioEigen, datatraits, dataset, trait,
+                   sep = ": ")$datatraits
 ```
 
 ```{r}
-LivIsoTraits <- LivIsoData |>
-  filter(trait %in% missIso[is.na(md)]) |>
-  distinct(trait, strain) |>
-  count(trait)
-LivIsoTraits |>
-  count(n, name = "nstrain") |>
-  pivot_wider(names_from = "n", values_from = "nstrain")
-```
-
-The `r sum(LivIsoTraits$n < 6)` that have fewer than 6 strains were dropped.
-That leaves the following `r md_na - sum(LivIsoTraits$n < 6)` traits:
-
-```{r}
-LivIsoTraits |>
-  filter(n >= 6) |>
-  arrange(n, trait)
-```
-
-These traits have 24 or more measurements and 6 or more strains.
-
-```{r}
-LivIsoData <- filter(LivIsoData, trait %in% filter(LivIsoTraits, n >= 6)$trait)
-stem((LivIsoData |>
-  count(trait))$n)
-```
-
-All of these traits only have females. They fail the model fit of `lm` due
-to failure in `model.matrix`. That is, we need 2 levels over every factor
-and factor combination to successfully run analysis. Here are the the
-counts by factors and factor combinations. The contrasts for `model.matrix`
-used by `lm` are even more stringent.
-
-```{r}
-ctfn <- function(x, factors) count(distinct(select(x, any_of(factors))))$n
-purfn <- function(x, factors) unlist(purrr::map(split(x, x$trait), ctfn, factors))
-data.frame(
-  # Single factors
-  strain = purfn(LivIsoData, c("strain")),
-  sex = purfn(LivIsoData, c("sex")),
-  diet = purfn(LivIsoData, c("condition")),
-  # Pairs of factors
-  strain_sex = purfn(LivIsoData, c("strain", "sex")),
-  strain_diet = purfn(LivIsoData, c("strain", "condition")),
-  sex_diet = purfn(LivIsoData, c("diet", "sex")),
-  strain_sex_diet = purfn(LivIsoData, c("strain", "sex", "condition")))
+Physio_traits <- foundr:::eigen_traits_dataset(traitModule, "Both Sexes",
+                                               PhysioDatatraits[1],
+                              PhysioCond, PhysioEigen)
 ```
 
 ```{r}
-liv
+Physio_traits
 ```
 
 ```{r}
-MixModEigen <- foundr::eigen_contrast(mixmod$value, )
-```
-
-```{r}
-summary(LivMetEigen)
+ggplot_conditionContrasts(
+        PhysioCond, bysex = "Female",
+        ordername = "p.value",
+        plottype = "volcano")
 ```
 
