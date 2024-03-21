@@ -29,12 +29,13 @@ Done:
 - contrasts computed for eigens as `MixModCond` below
 - traits for module identified below
 - add % dropped as characteristic of module
+- plot of Contrasts for modules (adapt for shinyContrastSex)
 
 ** Not sure how `term` is incorporated or which `p.value` to choose. **
 
 To Do:
 
-- plot of Contrasts for modules and for traits within modules
+- plot of Contrasts for traits within modules (adapt for shinyContrastModule)
 - other summaries (including min `p.value` for `term` within module)
 - redeploy both web apps with updated Lipid data
 - fix up app.. and shiny.. to work with data
