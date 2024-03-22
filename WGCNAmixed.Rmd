@@ -18,6 +18,8 @@ that is, not 4 sets of WGCNA but 1.
 Other difference: mixed WGCNA includes multiple datasets;
 want to make sure those datasets are selected.
 
+Idea is that one could run on Contrasts panel (sex and module subpanels) and Stats panel (currently only for eigens) but not Times. Could create a new Module panel that allows contrasts or Stats and eigens or traits per module.
+
 Done:
 
 - Lipid data has been updated with Holland material.
@@ -154,64 +156,56 @@ ggplot_conditionContrasts(
         plottype = "biplot")
 ```
 
-The `eigen_contrast` left-joins the 
+This gets the values that are then used for contrasts.
+Want also to get the stats summaries. (think Stats panel)
 
 ```{r}
-MixModInfo <-
-    dplyr::ungroup(
-      dplyr::summarize(
-        dplyr::group_by(
-          mixmod$value$modules,
-          .data$module),
-        kME = signif(max(abs(kME), na.rm = TRUE), 4),
-#        p.value = signif(min(p.value, na.rm = TRUE), 4),
-        size = dplyr::n(),
-        drop = sum(dropped) / size,
-        .groups = "drop"))
-MixModInfo
-```
-
-```{r}
-(MixModEigen <- 
-    dplyr::mutate(
-      dplyr::left_join(
-        dplyr::rename(MixModCond, module = "trait"),
-        # Get information by module.
-        MixModInfo,
-        by = "module"),
-      trait = factor(.data$module, unique(.data$module)),
-      module = match(.data$trait, levels(.data$trait))))
-```
-
-
-```{r eval=FALSE}
 MixModEigen <- foundr:::eigen_contrast_dataset(
-  traitModule["MixMod"], MixModCond)
+  traitModule$MixMod, MixModCond)
 ```
 
 # Traits in Modules
 
+The pieces are here.
+Have to distinguish between contrasts and stats.
+Ultimately want both.
+
+```{r}
+dataset
+```
+
 ```{r}
 MixDataTraits <- unite(filter(mixmod$value$modules, !dropped),
-                       datatrait, dataset, trait, sep = ": ")
+                       datatrait, dataset, trait, sep = ": ",
+                       remove = FALSE)
+```
+
+Following would pull all traits.
+
+```{r}
+traitStats <- 
+  inner_join(
+    readRDS("liverStats.rds") |>
+      unite(datatrait, dataset, trait, sep = ": ", remove = FALSE) |>
+      filter(datatrait %in% MixDataTraits$datatrait) |>
+      select(-datatrait),
+    select(MixDataTraits, -datatrait, -dropped),
+    by = c("dataset", "trait"))
 ```
 
 ```{r}
-traitStats <- readRDS("liverStats.rds") |>
-  unite(datatrait, dataset, trait, sep = ": ", remove = FALSE) |>
-  filter(datatrait %in% MixDataTraits$datatrait) |>
-  select(-datatrait)
+count(distinct(traitStats, dataset, trait), dataset)
 ```
 
 ```{r}
-pivot_wider(count(
-  left_join(
-    distinct(traitStats, dataset, trait),
-    MixDataTraits,
-    by = dataset, trait),
-  mutate(dropped = ifelse(dropped, "Drop", "Keep")),
-  dataset, dropped),
-  names_from = "dropped", values_from = "n")
+traitSignal <- 
+  inner_join(
+    readRDS("liverSignal.rds") |>
+      unite(datatrait, dataset, trait, sep = ": ", remove = FALSE) |>
+      filter(datatrait %in% MixDataTraits$datatrait) |>
+      select(-datatrait),
+    select(MixDataTraits, -datatrait, -dropped),
+    by = c("dataset", "trait"))
 ```
 
 Pick out traits for module `thistle4`
@@ -223,48 +217,62 @@ module_id <- "thistle4"
 ```
 
 ```{r}
-readRDS("liverStats.rds") |>
-  unite(datatrait, dataset, trait, sep = ": ", remove = FALSE) |>
-  filter(datatrait %in%
-           filter(MixDataTraits, module == module_id)$datatrait) |>
-  filter(term == "strain:diet") |>
-  select(-term, -SD) |>
-  left_join(
-    MixDataTraits,
-    by = "datatrait") |>
-  select(-datatrait) |>
-  arrange(p.value) 
+modStats <- traitStats |>
+  filter(module %in% module_id) 
+```
+
+```{r}
+modSignal <- 
+  readRDS("liverSignal.rds") |>
+    unite(datatrait, dataset, trait, sep = ": ", remove = FALSE) |>
+    filter(datatrait %in% 
+             filter(MixDataTraits, module %in% module_id)$datatrait) |>
+    select(-datatrait)
+```
+
+```{r}
+dim(distinct(modSignal, dataset, trait))
 ```
 
 ** Not sure if following is right. We want contrasts for traits in module.
 want to run conditionContrasts on Signal and Stats from module. **
 
 ```{r}
-MixModCond <- conditionContrasts(MixModSignal, MixModStats, 
-        termname = "strain:diet", rawStats = MixModStats)
-```
-
-
-
-```{r}
-readRDS("liverSignal.rds") |>
-  unite(datatrait, dataset, trait, sep = ": ", remove = FALSE) |>
-  filter(datatrait %in%
-           filter(MixDataTraits, module == module_id)$datatrait) |>
-  left_join(
-    MixDataTraits,
-    by = "datatrait") |>
-  select(-datatrait) |>
-  arrange(p.value) 
+modCond <- conditionContrasts(modSignal, modStats, 
+        termname = "strain:diet", rawStats = modStats)
+modCond <- 
+  select(
+    bind_rows(
+      (filter(MixModEigen, trait == module_id) |>
+        mutate(trait = "Eigen", module = module_id))[names(modCond)],
+      modCond),
+    -module)
 ```
 
 ```{r}
-MixModCond |>
-  filter(trait == module_id)
+eigen_contrast_dataset(datamodule(), traitContrast())
+eigen_traits_dataset(datamodule(), input$sex, input$module,
+                           traitContrast(), eigens())
+```
+
+following is almost right, but need to use traitstuff.
+
+```{r}
+MixModTraitn <- foundr:::eigen_contrast_dataset(traitModule$MixMod,
+                                                "Both Sexes", module_id,
+                                                MixModCond, MixModEigen)
 ```
 
 ```{r}
-MixModEigen |> filter(trait == module_id)
+count(mutate(modCond, trait = factor(trait, unique(trait))), trait)
+```
+
+```{r}
+ggplot_conditionContrasts(
+        modCond, bysex = "Both Sexes",
+        ordername = "p.value",
+        threshold = list(p.value = 0.05),
+        plottype = "biplot")
 ```
 
 # Modules as Traits
