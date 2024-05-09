@@ -77,6 +77,13 @@ mixmod <- traitModule$MixMod
 traitModule$MixMod$value$modules |> filter(dropped) |> arrange(dataset)
 ```
 
+### Eigen Summaries using `MixMod`
+
+- Need to add other order options to `MixMod` dataset.
+- Contrasts work with `appContrastSex`.
+- `appContrastPanel` not working--likely a problem at `dataset_strain`.
+- Stats work with `appStatsPanel`.
+
 ```{r}
 MixModSignal <- readRDS(file.path("MixMod", "MixModSignal.rds")) |>
   mutate(dataset = "MixMod")
@@ -115,18 +122,11 @@ MixModSignal and get stats from MixModStats for the eigens.
 For the traits, we want to use `modules` to match up `dataset` and `trait`
 from traitCond with the module.
 
-```{r}
+```{r eval=FALSE}
 data.frame(
   Stats = MixModStats |> count(trait) |> count(n, name = "samples"),
   Signal = MixModSignal |> count(trait) |> count(n, name = "samples"),
   Cond = MixModCond |> count(trait) |> count(n, name = "samples"))
-```
-
-```{r}
-list(
-  Stats = names(MixModStats),
-  Signal = names(MixModSignal),
-  Cond = names(MixModCond))
 ```
 
 ```{r}
@@ -156,12 +156,21 @@ ggplot_conditionContrasts(
         plottype = "biplot")
 ```
 
-This gets the values that are then used for contrasts.
-Want also to get the stats summaries. (think Stats panel)
+### Eigen Stats
+
 
 ```{r}
-MixModEigen <- foundr:::eigen_contrast_dataset(
-  traitModule$MixMod, MixModCond)
+ggplot_conditionContrasts(
+        MixModStats,
+        ordername = "p.value",
+        threshold = c(p.value = 0.05),
+        plottype = "volcano")
+```
+
+```{r}
+ggplot_conditionContrasts(
+        MixModStats,
+        plottype = "biplot")
 ```
 
 # Traits in Modules
@@ -169,10 +178,6 @@ MixModEigen <- foundr:::eigen_contrast_dataset(
 The pieces are here.
 Have to distinguish between contrasts and stats.
 Ultimately want both.
-
-```{r}
-dataset
-```
 
 ```{r}
 MixDataTraits <- unite(filter(mixmod$value$modules, !dropped),
@@ -197,17 +202,6 @@ traitStats <-
 count(distinct(traitStats, dataset, trait), dataset)
 ```
 
-```{r}
-traitSignal <- 
-  inner_join(
-    readRDS("liverSignal.rds") |>
-      unite(datatrait, dataset, trait, sep = ": ", remove = FALSE) |>
-      filter(datatrait %in% MixDataTraits$datatrait) |>
-      select(-datatrait),
-    select(MixDataTraits, -datatrait, -dropped),
-    by = c("dataset", "trait"))
-```
-
 Pick out traits for module `thistle4`
 
 **Need to add module as initial trait.**
@@ -219,6 +213,31 @@ module_id <- "thistle4"
 ```{r}
 modStats <- traitStats |>
   filter(module %in% module_id) 
+```
+
+```{r}
+ggplot_conditionContrasts(
+        modStats,
+        plottype = "volcano")
+```
+
+```{r}
+ggplot_conditionContrasts(
+        modStats,
+        plottype = "biplot")
+```
+
+### Contrasts of traits in module
+
+```{r}
+traitSignal <- 
+  inner_join(
+    readRDS("liverSignal.rds") |>
+      unite(datatrait, dataset, trait, sep = ": ", remove = FALSE) |>
+      filter(datatrait %in% MixDataTraits$datatrait) |>
+      select(-datatrait),
+    select(MixDataTraits, -datatrait, -dropped),
+    by = c("dataset", "trait"))
 ```
 
 ```{r}
@@ -238,6 +257,11 @@ dim(distinct(modSignal, dataset, trait))
 want to run conditionContrasts on Signal and Stats from module. **
 
 ```{r}
+MixModEigen <- foundr:::eigen_contrast_dataset(
+  traitModule$MixMod, MixModCond)
+```
+
+```{r}
 modCond <- conditionContrasts(modSignal, modStats, 
         termname = "strain:diet", rawStats = modStats)
 modCond <- 
@@ -247,6 +271,21 @@ modCond <-
         mutate(trait = "Eigen", module = module_id))[names(modCond)],
       modCond),
     -module)
+```
+
+```{r}
+ggplot_conditionContrasts(
+        modCond, bysex = "Both Sexes",
+        ordername = "p.value",
+        plottype = "volcano")
+```
+
+```{r}
+ggplot_conditionContrasts(
+        modCond, bysex = "Both Sexes",
+        ordername = "p.value",
+        threshold = list(p.value = 0.05),
+        plottype = "biplot")
 ```
 
 ```{r}
