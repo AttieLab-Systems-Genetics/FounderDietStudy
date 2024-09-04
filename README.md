@@ -43,47 +43,47 @@ and will break when the `foundrBase` branch is merged back into `main`.
 
 ## FounderLiverDietStudy
 - <https://connect.doit.wisc.edu/FounderLiverDietStudy/>
-  + `./deployLiverNew` 1.5.0
+  + `./deployLiverNew` 1.5.0 9/4/24
   + connect name `deployLiverNew`
   + uses `foundr` branch "foundrBase"
 - <https://connect.doit.wisc.edu/OldFounderLiverDietStudy/>
-  + `./deployLiver` 1.4.1 static
+  + `./deployLiver` 1.4.1 9/4/24
   + connect name `deployLiver`
   + old version
-  + uses `foundr` branch v1.4 
+  + uses static `foundr` branch v1.4 
 - <https://connect.doit.wisc.edu/OrigFounderLiverDietStudy/>
-  + `./deployLiver` 1.4.1 static
+  + `./deployLiver` 1.4.1 9/4/24
   + connect name `deployLiver`
   + older version that will die when "foundrBase" is merged
 - <https://connect.doit.wisc.edu/WorkFounderLiverDietStudy/>
   + <https://workbench.doit.wisc.edu> directory `./data/deployLiver`
-  + named `Founder Diet Study`
-  + workbench name `shinyApp_Liver`
+  + workbench name `shinyApp_Liver` 6/7/24
   + has liver data but is somehow messed up
-  + uses `foundrShiny` but `foundr` v1.4
+    + named `Founder Diet Study`
+    + uses `foundrShiny` but `foundr` v1.4
   
 ## FounderDietStudy
 - <https://connect.doit.wisc.edu/FounderDietStudy/>
-  + `./deployNew` 1.5.0
+  + `./deployNew` 1.5.0 9/4/24
   + connect name `deployNew`
   + uses `foundr` branch "foundrBase"
 - <https://connect.doit.wisc.edu/OldFounderDietStudy/>
-  + `./deploy` 1.4.1 static
+  + `./deploy` 1.4.1 9/4/24
   + connect name `deploy`
   + old version
-  + uses `foundr` branch v1.4 
+  + uses static `foundr` branch v1.4 
 - <https://connect.doit.wisc.edu/OrigFounderDietStudy/>
-  + `./deploy` 1.4.1 static
+  + `./deploy` 1.4.1 5/9/24
   + connect name `deploy`
   + older version that will die when "foundrBase" is merged
   
 ## FounderCalciumStudy
 - <https://connect.doit.wisc.edu/FounderCalciumStudy/>
-  + `./deployCalcium` 1.5.0
+  + `./deployCalcium` 1.5.0 9/4/24
   + connect name `deployCalcium`
   + uses `foundr` branch "foundrBase"
 - <https://connect.doit.wisc.edu/OldFounderCalciumStudy/>
-  + `./deployCalcium` 1.4.1
+  + `./deployCalcium` 1.4.1 5/9/24
   + connect name `deployCalcium`
   + older version that will die when "foundrBase" is merged
 
