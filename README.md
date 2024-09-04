@@ -30,3 +30,61 @@ Data are archived in [ResearchDrive](https://kb.wisc.edu/researchdata/internal/p
 
 Brian S. Yandell <brian.yandell@wisc.edu>
 30 January 2023
+
+4 Sep 2024
+
+Founder apps are in transition to new `foundr/foundrShiny` configuration.
+As of today, all 3 default connect apps (`/Founder*Study`) have the new
+configuration, using the `foundrBase` branch. 
+Apps `/OldFounder*Study` use the `v1.4` branch of `foundr` package,
+which is frozen.
+Apps `/OrigFounder*Study` use the `main` branch of `foundr` package,
+and will break when the `foundrBase` branch is merged back into `main`.
+
+## FounderLiverDietStudy
+- <https://connect.doit.wisc.edu/FounderLiverDietStudy/>
+  + `./deployLiverNew` 1.5.0
+  + connect name `deployLiverNew`
+  + uses `foundr` branch "foundrBase"
+- <https://connect.doit.wisc.edu/OldFounderLiverDietStudy/>
+  + `./deployLiver` 1.4.1 static
+  + connect name `deployLiver`
+  + old version
+  + uses `foundr` branch v1.4 
+- <https://connect.doit.wisc.edu/OrigFounderLiverDietStudy/>
+  + `./deployLiver` 1.4.1 static
+  + connect name `deployLiver`
+  + older version that will die when "foundrBase" is merged
+- <https://connect.doit.wisc.edu/WorkFounderLiverDietStudy/>
+  + <https://workbench.doit.wisc.edu> directory `./data/deployLiver`
+  + named `Founder Diet Study`
+  + workbench name `shinyApp_Liver`
+  + has liver data but is somehow messed up
+  + uses `foundrShiny` but `foundr` v1.4
+  
+## FounderDietStudy
+- <https://connect.doit.wisc.edu/FounderDietStudy/>
+  + `./deployNew` 1.5.0
+  + connect name `deployNew`
+  + uses `foundr` branch "foundrBase"
+- <https://connect.doit.wisc.edu/OldFounderDietStudy/>
+  + `./deploy` 1.4.1 static
+  + connect name `deploy`
+  + old version
+  + uses `foundr` branch v1.4 
+- <https://connect.doit.wisc.edu/OrigFounderDietStudy/>
+  + `./deploy` 1.4.1 static
+  + connect name `deploy`
+  + older version that will die when "foundrBase" is merged
+  
+## FounderCalciumStudy
+- <https://connect.doit.wisc.edu/FounderCalciumStudy/>
+  + `./deployCalcium` 1.5.0
+  + connect name `deployCalcium`
+  + uses `foundr` branch "foundrBase"
+- <https://connect.doit.wisc.edu/OldFounderCalciumStudy/>
+  + `./deployCalcium` 1.4.1
+  + connect name `deployCalcium`
+  + older version that will die when "foundrBase" is merged
+
+
