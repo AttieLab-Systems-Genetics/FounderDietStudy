@@ -243,3 +243,10 @@ Special `FounderLiverDietStudy`:
 ```{r}
 bind_traits(c("Physio","LivMet","Lipid","LivRna","LivIso","MixMod"), traitRoot = "liver")
 ```
+
+Small tester
+
+```{r}
+bind_traits(c("Physio","Mixmod"), traitRoot = "PhysMix")
+```
+

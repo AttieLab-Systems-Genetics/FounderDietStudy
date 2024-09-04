@@ -3,7 +3,7 @@ devtools::install_cran("markdown") #  not yet on UW dataviz
 devtools::install_cran("cowplot") #  not yet on UW dataviz
 devtools::install_cran("ggdendro") #  not yet on UW dataviz
 #devtools::install_cran("RSQLite") #  not yet on UW dataviz
-devtools::install_github("byandell/foundr")
+devtools::install_github("byandell/foundr", ref = "v1.4")
 options(shiny.sanitize.errors = FALSE)
 
 dirpath <- file.path(".")
